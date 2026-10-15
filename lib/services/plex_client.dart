@@ -35,6 +35,7 @@ import 'library_query_translator.dart';
 import 'scrub_preview_source.dart';
 import '../utils/media_server_http_client.dart';
 import '../utils/url_utils.dart';
+import '../utils/http_probe.dart';
 import '../exceptions/media_server_exceptions.dart';
 import '../models/livetv_capture_buffer.dart';
 import '../models/livetv_channel.dart';
@@ -3816,7 +3817,7 @@ class PlexClient
       // clients fall back to a server transcode in that case; we do the same.
       if (!isTrack && options.sessionIdentifier != null && options.transcodeSessionId != null) {
         final directPlayUrl = _trackStreamUrl(data.videoUrl, options);
-        final status = directPlayUrl == null ? null : await _probeDirectPlayStatus(directPlayUrl);
+        final status = directPlayUrl == null ? null : await probeHttpStatus(directPlayUrl);
         if (status == 500 || status == 502 || status == 503 || status == 504) {
           appLogger.w('Direct play refused by the server (HTTP $status, likely its remote-stream bandwidth limit); falling back to a 20 Mbps transcode');
           final resolvedAudioId = carriedAudioTrack == null
@@ -3924,26 +3925,6 @@ class PlexClient
       playSessionId: options.sessionIdentifier,
       selectedMediaIndex: data.selectedMediaIndex,
     );
-  }
-
-  /// Probes the direct-play URL with a single-byte range request to detect
-  /// server-side bandwidth-cap rejections. PMS answers HTTP 500 (or 503)
-  /// instead of a transcode decision when a remote client exceeds its
-  /// per-stream cap; official clients fall back to a server transcode in
-  /// that case. A failed probe (timeout, socket error) returns null and
-  /// must never block playback.
-  Future<int?> _probeDirectPlayStatus(String url) async {
-    final client = http.Client();
-    try {
-      final request = http.Request('GET', Uri.parse(url))
-        ..headers['Range'] = 'bytes=0-0';
-      final streamedResponse = await client.send(request).timeout(const Duration(seconds: 5));
-      return streamedResponse.statusCode;
-    } catch (_) {
-      return null;
-    } finally {
-      client.close();
-    }
   }
 
   /// Direct-play result for a transcode decision that fell back (failed or
