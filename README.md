@@ -1,299 +1,53 @@
-<h1>
-  <img src="assets/plezy.png" alt="Plezy Logo" height="24" style="vertical-align: middle;" />
-  Plezy
-</h1>
+# Plezy Neko 🐾
+*A cute, Windows-focused, catgirl-maid themed fork of Plezy! Nya~*
 
-A modern client for Plex, Jellyfin, and Emby on desktop, mobile, and TV. Built with Flutter for native performance and a clean interface.
+![Plezy Neko Mascot](docs/neko/mascot.gif)
 
-<p>
-  <a href="https://plezy.app">Website</a> ·
-  <a href="https://plezy.app/#screenshots">Screenshots</a> ·
-  <a href="#download">Download</a> ·
-  <a href="CONTRIBUTING.md">Contributing</a> ·
-  <a href="LICENSE">License</a>
-</p>
+## 🌸 What is this?
+Welcome! **Plezy Neko** is a specialized, aesthetic fork of [Plezy](https://github.com/edde746/plezy) (by edde746), a fantastic Flutter client for Plex, Jellyfin, and Emby.
 
-<p align="center">
-  <img src="assets/readme-showcase.webp" alt="Plezy mobile screenshots" width="900" />
-</p>
+This fork keeps **all** the amazing upstream features of the original app but sprinkles in a cozy, cute aesthetic and a dedicated Windows desktop focus! Best of all, it has a completely separate app identity (its own window title, icon, and data folder), meaning you can safely run it right alongside the official Plezy app without any conflicts.
 
-## Download
+## ✨ Features & Additions
 
-<a href='https://apps.apple.com/app/apple-store/id6754315964?pt=128238902&ct=GitHub&mt=8'><img height='60' alt='Download on the App Store' src='./assets/app-store-badge.png'/></a>
-<a href='https://play.google.com/store/apps/details?id=com.edde746.plezy&referrer=utm_source%3Dgithub%26utm_campaign%3Dreadme_badge'><img height='60' alt='Get it on Google Play' src='./assets/play-store-badge.png'/></a>
-<a href='https://www.amazon.com/gp/product/B0GK65CVS1'><img height='60' alt='Available at the Amazon App Store' src='./assets/amazon-badge.png'/></a>
-<a href='https://get.microsoft.com/installer/download/9n5r1s1t68h7?referrer=appbadge&cid=github'><img height='60' alt='Get it from Microsoft' src='./assets/microsoft-badge.png'/></a>
+* **Catgirl Themes:** Introduces *Neko Maid* (pastel sakura pink and cream, the new default) and *Neko Night* (plum and sakura pink). The original Plezy themes are still available!
+* **One-Click Theme Toggle:** Easily swap to the cute stuff using the 'Catgirl theme' toggle in Appearance settings or the handy paw button in the side menu! Turning it off perfectly restores your previous theme.
+* **Your Personal Chibi Mascot:** An original chibi catgirl-maid hangs out in the side menu and sign-in screen! She features a gentle idle bob, blinks, and does a happy cheer animation when clicked! *(Can be hidden in settings if you prefer).*
+* **Cozy UI Touches:** Enjoy a paw-print wallpaper on the sign-in screen, delicate lace trim, a hopping-paws "Nya~ loading..." loader, and a sleepy cat illustration on empty screens.
+* **Rounded Typography:** In the Neko themes, app text is rendered in the soft and friendly *M PLUS Rounded 1c* font.
+* **Themed Video Player:** While using the Neko themes, the player features a pink seek bar with a paw-print handle, a little bell icon for play/pause, and a paw loader!
+* **Plex Playback Fix:** If a Plex server refuses direct play with an HTTP 5xx error (because the stream exceeds its remote bandwidth limit), Plezy Neko will automatically probe and fall back to a 20 Mbps server transcode—just like the official Plex apps do!
+  * *Tip for Server Owners:* List your home network in Plex `Settings > Network > LAN Networks` so your local devices aren't accidentally treated as remote!
 
-| Platform | Download |
-| --- | --- |
-| macOS | [DMG (x64, arm64)](https://github.com/edde746/plezy/releases/latest/download/plezy-macos.dmg) |
-| Linux x64 | [.deb](https://github.com/edde746/plezy/releases/latest/download/plezy-linux-x64.deb) · [.rpm](https://github.com/edde746/plezy/releases/latest/download/plezy-linux-x64.rpm) · [.pkg.tar.zst](https://github.com/edde746/plezy/releases/latest/download/plezy-linux-x64.pkg.tar.zst) · [.flatpak](https://github.com/edde746/plezy/releases/latest/download/plezy-linux-x64.flatpak) · [portable tar.gz](https://github.com/edde746/plezy/releases/latest/download/plezy-linux-x64.tar.gz) |
-| Linux arm64 | [.deb](https://github.com/edde746/plezy/releases/latest/download/plezy-linux-arm64.deb) · [.rpm](https://github.com/edde746/plezy/releases/latest/download/plezy-linux-arm64.rpm) · [.pkg.tar.zst](https://github.com/edde746/plezy/releases/latest/download/plezy-linux-arm64.pkg.tar.zst) · [.flatpak](https://github.com/edde746/plezy/releases/latest/download/plezy-linux-arm64.flatpak) · [portable tar.gz](https://github.com/edde746/plezy/releases/latest/download/plezy-linux-arm64.tar.gz) |
+## 📸 Screenshots
 
-<details>
-<summary>Install with a package manager</summary>
+| Neko Maid Theme | Neko Night Theme |
+|:---:|:---:|
+| ![Neko Maid](docs/neko/neko_maid.png) | ![Neko Night](docs/neko/neko_night.png) |
 
-### macOS — Homebrew
+## 🛠️ Building on Windows
 
-```bash
-brew tap edde746/plezy https://github.com/edde746/plezy
-brew install --cask plezy
-```
+Plezy Neko is built specifically for Windows desktop. To build it yourself, you will need:
+* **Flutter `3.47.1` exactly**
+* Windows Developer Mode **turned on**
+* Visual Studio 2022 Build Tools (with the **C++ desktop workload** installed)
+* A JDK (Temurin 21) with `JAVA_HOME` set
 
-### Windows — WinGet
+**Build Steps** (from the repository root, in PowerShell):
+1. Fetch dependencies: `flutter pub get`
+2. Precache Windows tools: `flutter precache --windows`
+3. Install the patched engine: `.\windows\tool\install-patched-engine.ps1`
+   *(Note: This is Plezy's patched DirectComposition engine. It is strictly required, otherwise the player controls will hide behind the video!)*
+4. Run the build runner: `dart run build_runner build`
+5. Build the release executable: `flutter build windows --release`
 
-```bash
-winget install edde746.Plezy
-```
+Your finished build will be ready at: `build/windows/x64/runner/Release/plezy.exe`.
 
-### Linux — Flatpak
+## 🎨 Art & Fonts
+* **Mascot & Icon:** The chibi catgirl-maid and app icon are original characters/assets created for this fork (generated with Google Gemini). They do not belong to any existing franchise!
+* **Font:** The app uses *M PLUS Rounded 1c*, licensed under the SIL Open Font License (see `assets/fonts/mplus_rounded/OFL.txt`).
 
-Install Flatpak with your distribution's package manager, download the bundle for your architecture above, then run:
+## 📜 Credits & License
+Plezy Neko is licensed under **GPL-3.0**, matching the upstream repository.
 
-```bash
-flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-flatpak install --user flathub org.freedesktop.Platform//25.08
-flatpak install --user ./plezy-linux-x64.flatpak
-flatpak run com.edde746.plezy
-```
-
-On arm64, install `plezy-linux-arm64.flatpak`.
-
-<details>
-<summary>Sandbox, playback, and folder access</summary>
-
-- Not on Flathub — the remote supplies the Freedesktop runtime only.
-- Video playback needs a Wayland session; a pure X11 session shows the interface but cannot create the video plane.
-- No host or home filesystem access; app data lives in `~/.var/app/com.edde746.plezy/`. Add host folders through the desktop file chooser portal, and keep download folders writable.
-- Network, display, audio, and device access are enabled. `--device=all` (Flatpak 1.14 compatibility) exposes more than GPUs and controllers; session-bus access stays filtered.
-
-</details>
-
-### Arch Linux — Pacman
-
-[Distribution package](https://archlinux.org/packages/extra/x86_64/plezy/).
-
-```bash
-sudo pacman -S plezy
-```
-
-### Fedora / Red Hat — DNF
-
-[Installation instructions](https://github.com/aldobarr/plezy-rpm) · Community repository by [@aldobarr](https://github.com/aldobarr).
-
-### Nix
-
-[Community package](https://search.nixos.org/packages?channel=unstable&query=plezy) maintained by [@mio-19](https://github.com/mio-19) and [@MiniHarinn](https://github.com/MiniHarinn).
-
-### aerynOS — Moss
-
-[Distribution package](https://github.com/aerynOS/recipes/tree/main/p/plezy).
-
-```bash
-sudo moss it plezy
-```
-
-</details>
-
-## Features
-
-### <img src="assets/readme_icons/browse.svg" height="20" alt="" align="center" /> Browse & Discover
-- Libraries, collections, and playlists — video and audio
-- Discover hub — Continue Watching, Next Up, trending, and recommendations
-- Cross-server search across every connected Plex, Jellyfin, and Emby server, including actors and directors
-- Filtering, sorting, and alphabetical jump navigation
-- Folder browsing and folder playback — home-video libraries open in folder view
-- Resolution, HDR/Dolby Vision, and audio-format badges on cards and detail pages
-- Favorites and unwatched library filters[^mb]
-- Extras — trailers, deleted scenes, behind-the-scenes
-
-### <img src="assets/readme_icons/explore.svg" height="20" alt="" align="center" /> Explore & Requests
-- Explore tab — watchlist, trending, popular, and recommendation rows from Plex Discover[^plex], Trakt, MyAnimeList, AniList, Simkl, and Seerr[^connect]
-- Search any connected catalog source
-- Catalog titles matched back to your own libraries by external ID
-- Seerr — request movies and shows with per-season, 4K, and advanced destination options, and see request status inline
-- Watchlist sync — add and remove titles on Plex, Trakt, MyAnimeList, AniList, and Simkl from anywhere in the app
-
-### <img src="assets/readme_icons/playback.svg" height="20" alt="" align="center" /> Playback
-- Wide codec support (HEVC, AV1, VP9, and more)
-- HDR and Dolby Vision[^hdr]
-- Direct play, or transcode presets from 240p/320 kbps to 1080p/20 Mbps
-- Multi-version switching with per-version file details
-- Full ASS/SSA subtitles with customizable styling
-- Online subtitle search & download[^plex]
-- Audio & subtitle choices remembered per title, or follow the server's per-episode selections
-- Progress sync and resume
-- Auto-play next episode with skip intro / skip credits
-- Chapter navigation with thumbnail scrub previews
-- Playback speed from 0.25x to 8x, audio sync offset, sleep timer (fixed durations or end of video)
-- Video zoom 50-200% with pinch, presets, and hotkeys
-- Audio passthrough[^pass], output channel limit (5.1 or stereo, with center-channel boost), and loudness normalization
-- File Info sheet — every version, file, and stream the server reports
-- Ambient lighting and GLSL shader presets[^mpv]
-- Picture-in-Picture[^pip]
-- Refresh-rate matching[^rrm]
-- External player launch (VLC, MX Player, etc.) with progress sync back[^android]
-
-### <img src="assets/readme_icons/music.svg" height="20" alt="" align="center" /> Music
-- Music libraries — artist, album, and track browsing with square artwork
-- Album and artist screens with play, shuffle, and Instant Mix
-- Gapless playback with a full play queue — reorder, remove, play next, add to queue
-- Now Playing with synced lyrics[^lyrics], persistent mini-player, and sleep timer
-- Background playback with lock-screen, media-key, and notification controls[^bgaudio]
-- Offline playback of downloaded albums and tracks
-- Streaming quality presets — Original, 320, 192, or 128 kbps
-
-### <img src="assets/readme_icons/live-tv.svg" height="20" alt="" align="center" /> Live TV & DVR
-- Live TV channel browsing, tuning, and favorites
-- EPG guide with What's On and per-show schedules
-- DVR recording rules, scheduled recordings, and a rememberable recording target library[^plex]
-- Multi-server Live TV support where available
-
-### <img src="assets/readme_icons/downloads.svg" height="20" alt="" align="center" /> Downloads & Offline
-- Download movies, shows, and music for offline playback[^dl]
-- Background queue with pause / resume
-- Sync rules for automatic downloads, with per-show "Include Specials"
-- Offline browsing with watch state sync-back on reconnect
-
-### <img src="assets/readme_icons/watch-together.svg" height="20" alt="" align="center" /> Watch Together
-- Synchronized playback with friends
-- Real-time play / pause / seek sync
-- Host handoff when the relay and every connected peer support safe transfers
-- Automatic reconnect authenticates retained room membership; it never silently joins a reused room code.
-
-Self-hosted relays must support `authenticatedResume` for recovery. Deploy the updated relay before updating clients.
-Older relays still accept explicit create/join, but failed recovery requires joining or creating a room again.
-
-### <img src="assets/readme_icons/integrations.svg" height="20" alt="" align="center" /> Integrations
-- Discord Rich Presence[^desktop]
-- Trakt, MyAnimeList, AniList, and Simkl — ratings, watched sync, and real-time scrobbling[^rt]
-- Scores from connected trackers on detail pages — Trakt, Simkl, MyAnimeList, and AniList, plus Rotten Tomatoes, Metacritic, Letterboxd, IMDb, and TMDB through MDBList
-- Plezy Remote — control desktop and TV from mobile
-- Watch Next row and tvOS Top Shelf[^shelf]
-
-### <img src="assets/readme_icons/customization.svg" height="20" alt="" align="center" /> Platform & Customization
-- Desktop, mobile, and TV — full D-pad, keyboard, and gamepad support
-- Multiple servers at once — Plex, Jellyfin, and Emby side by side
-- Profiles with per-profile downloads, watch state, and settings; Plex Home switching with PIN
-- Jellyfin and Emby local-server discovery and multiple URLs per server; Quick Connect sign-in[^jf]
-- TV layout options — corner spotlight backdrop, full-card artwork, and Force TV mode on desktop
-- Customizable keyboard shortcuts[^desktop]
-- Metadata and artwork editing
-- Settings import/export
-- Localized in English plus 21 translations
-
-[^jf]: Jellyfin only.
-[^mb]: Jellyfin and Emby only.
-[^plex]: Plex only.
-[^connect]: Requires connecting the service under Settings > Services.
-[^hdr]: In-app HDR toggle on Windows, macOS, iOS, tvOS, and Linux — Linux needs a colour-managed Wayland compositor. Dolby Vision on Android and Apple TV.
-[^pass]: Desktop, Android TV, and Apple TV.
-[^mpv]: Requires the mpv player backend — unavailable on iOS and tvOS, and Android defaults to ExoPlayer.
-[^pip]: Android, iOS, and macOS — not on Android TV or Apple TV.
-[^rrm]: Windows, Android, and tvOS.
-[^android]: Progress sync on Android.
-[^lyrics]: Where your server provides lyrics.
-[^bgaudio]: tvOS pauses music when the app is backgrounded.
-[^dl]: Not available on tvOS.
-[^desktop]: Desktop only.
-[^rt]: Real-time scrobbling on Trakt and Simkl; MyAnimeList and AniList update on completion.
-[^shelf]: Android TV / Fire TV and tvOS.
-
-## Building from Source
-
-### Prerequisites
-- Flutter SDK 3.47.0+
-- A Plex account, or a Jellyfin or Emby server with user credentials
-
-### Setup
-
-```bash
-git clone https://github.com/edde746/plezy.git
-cd plezy
-flutter pub get
-scripts/codegen.sh
-flutter run
-```
-
-<details>
-<summary>Code generation</summary>
-
-After modifying model classes or other generated sources:
-
-```bash
-scripts/codegen.sh
-```
-
-After modifying translations:
-
-```bash
-dart run slang
-```
-
-</details>
-
-<details>
-<summary>Packaging a Flatpak bundle</summary>
-
-Packages an **already fully resolved Linux release bundle** — pinned libmpv and bundled libraries included, not a Flathub source-build manifest. Run it on Linux, on the same architecture as the bundle, after following the bundle preparation steps in [the Linux release workflow](.github/workflows/build.yml): `flutter build linux` alone does not produce all the required bundled libraries.
-
-Install the packaging tools (Debian/Ubuntu shown) plus the native-architecture SDK and runtime:
-
-```bash
-sudo apt-get update
-sudo apt-get install -y flatpak flatpak-builder imagemagick
-flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-flatpak install --user flathub org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08
-
-BUNDLE_DIR=build/linux/x64/release/bundle
-python3 linux/packaging/build-flatpak.py --bundle "$BUNDLE_DIR" --arch x64 --output "$PWD"
-```
-
-That writes `plezy-linux-x64.flatpak`, installable with the Flatpak commands above; on arm64, use the prepared arm64 bundle directory and `--arch arm64`. Package from the checkout matching the bundle, since the version comes from `pubspec.yaml`.
-
-Cross-architecture packaging needs native Flatpak tools, a registered binfmt interpreter, and the target SDK/runtime installed with `flatpak install --user --arch=x86_64` (or `aarch64`) — never run Flatpak's namespace tools under emulation. Pass `--arch x64` or `--arch arm64` to the checker and the matching Flatpak architecture to `flatpak run --arch=...`.
-
-Check the installed package against the runtime (not just the SDK), then launch it on a Wayland desktop and exercise streaming, audio, downloads/offline playback, and file chooser portals:
-
-```bash
-python3 linux/packaging/check-flatpak.py
-```
-
-The check fails on a non-executable entry point or an unresolved bundled ELF dependency. A container without a GPU can use `flatpak run --env=GALLIUM_DRIVER=softpipe com.edde746.plezy` for software-rendered verification; this is not a hardware-decoding or HDR test.
-
-</details>
-
-<details>
-<summary>Local checks</summary>
-
-```bash
-scripts/ci_checks.sh
-```
-
-To install the same pre-commit checks locally:
-
-```bash
-scripts/setup_hooks.sh
-```
-
-End-to-end tests (Android emulator plus a Dockerized Jellyfin fixture):
-
-```bash
-python3 scripts/maestro/run_maestro.py basic
-```
-
-</details>
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow, formatting, tests, and translation guidelines.
-
-## License
-
-Plezy is licensed under [GPL-3.0](LICENSE).
-
-## Acknowledgments
-
-- Built with [Flutter](https://flutter.dev)
-- Supports [Plex Media Server](https://www.plex.tv), [Jellyfin](https://jellyfin.org), and [Emby](https://emby.media)
-- Playback powered by [mpv](https://mpv.io) via our [mpv-build](https://github.com/edde746/mpv-build) pipeline (started as a fork of [MPVKit](https://github.com/mpvkit/MPVKit); the Android Kotlin/JNI glue descends from [libmpv-android](https://github.com/jarnedemeulemeester/libmpv-android)), Android [ExoPlayer](https://developer.android.com/media/media3/exoplayer), and [libass-android](https://github.com/peerless2012/libass-android)
+Massive credit and gratitude goes to **edde746** for creating [Plezy](https://github.com/edde746/plezy). All core media client features, playback architecture, and original themes belong to upstream. Thank you for the amazing foundation! The original upstream README is kept at [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md).
