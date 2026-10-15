@@ -24,6 +24,8 @@ String themeModeLabel(settings.ThemeMode mode) => switch (mode) {
   settings.ThemeMode.light => t.settings.lightTheme,
   settings.ThemeMode.dark => t.settings.darkTheme,
   settings.ThemeMode.oled => t.settings.oledTheme,
+  settings.ThemeMode.neko => t.settings.nekoTheme,
+  settings.ThemeMode.nekoNight => t.settings.nekoNightTheme,
 };
 
 /// Model for option selection dialogs.

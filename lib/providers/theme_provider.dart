@@ -9,6 +9,7 @@ import '../services/native_window_service.dart';
 import '../services/settings_binding_owner.dart';
 import '../services/settings_service.dart' as settings;
 import '../theme/mono_theme.dart';
+import '../theme/neko/neko_theme.dart';
 import '../utils/app_logger.dart';
 
 class ThemeProvider extends ChangeNotifier with DisposableChangeNotifierMixin, WidgetsBindingObserver {
@@ -59,31 +60,40 @@ class ThemeProvider extends ChangeNotifier with DisposableChangeNotifierMixin, W
 
   settings.ThemeMode get themeMode => _themeMode;
 
-  /// Dark palette for [mode], honouring the OLED variant.
+  /// Light palette for [mode].
+  static ThemeData lightThemeFor(settings.ThemeMode mode) =>
+      mode == settings.ThemeMode.neko ? nekoTheme(dark: false) : monoTheme(dark: false);
+
+  /// Dark palette for [mode], honouring the OLED and Neko Night variants.
   ///
   /// Static so the pre-provider startup frame can resolve the same theme this
   /// provider will settle on, instead of guessing from platform brightness
   /// and flashing when the two disagree (#1833).
-  static ThemeData darkThemeFor(settings.ThemeMode mode) =>
-      monoTheme(dark: true, oled: mode == settings.ThemeMode.oled);
+  static ThemeData darkThemeFor(settings.ThemeMode mode) => switch (mode) {
+    settings.ThemeMode.nekoNight => nekoTheme(dark: true),
+    settings.ThemeMode.oled => monoTheme(dark: true, oled: true),
+    _ => monoTheme(dark: true),
+  };
 
   /// Material equivalent of the app's own [settings.ThemeMode].
   static ThemeMode materialThemeModeFor(settings.ThemeMode mode) => switch (mode) {
     settings.ThemeMode.light => ThemeMode.light,
+    settings.ThemeMode.neko => ThemeMode.light,
     settings.ThemeMode.dark => ThemeMode.dark,
+    settings.ThemeMode.nekoNight => ThemeMode.dark,
     settings.ThemeMode.oled => ThemeMode.dark,
     settings.ThemeMode.system => ThemeMode.system,
   };
 
-  ThemeData get lightTheme => monoTheme(dark: false);
+  ThemeData get lightTheme => lightThemeFor(_themeMode);
   ThemeData get darkTheme => darkThemeFor(_themeMode);
 
   ThemeMode get materialThemeMode => materialThemeModeFor(_themeMode);
 
   /// Whether [mode] resolves to a dark theme when the platform reports [platformBrightness].
   static bool isDarkFor(settings.ThemeMode mode, Brightness platformBrightness) => switch (mode) {
-    settings.ThemeMode.light => false,
-    settings.ThemeMode.dark || settings.ThemeMode.oled => true,
+    settings.ThemeMode.light || settings.ThemeMode.neko => false,
+    settings.ThemeMode.dark || settings.ThemeMode.oled || settings.ThemeMode.nekoNight => true,
     settings.ThemeMode.system => platformBrightness == Brightness.dark,
   };
 
@@ -142,7 +152,8 @@ class ThemeProvider extends ChangeNotifier with DisposableChangeNotifierMixin, W
     final name = switch (mode) {
       settings.ThemeMode.dark => 'dark',
       settings.ThemeMode.oled => 'oled',
-      settings.ThemeMode.light => 'light',
+      settings.ThemeMode.light || settings.ThemeMode.neko => 'light',
+      settings.ThemeMode.nekoNight => 'dark',
       settings.ThemeMode.system => 'system',
     };
     _themeChannel.invokeMethod('setSplashTheme', {'mode': name});
@@ -152,8 +163,12 @@ class ThemeProvider extends ChangeNotifier with DisposableChangeNotifierMixin, W
     switch (_themeMode) {
       case settings.ThemeMode.light:
         return Symbols.light_mode_rounded;
+      case settings.ThemeMode.neko:
+        return Symbols.pets_rounded;
       case settings.ThemeMode.dark:
         return Symbols.dark_mode_rounded;
+      case settings.ThemeMode.nekoNight:
+        return Symbols.bedtime_rounded;
       case settings.ThemeMode.oled:
         return Symbols.contrast_rounded;
       case settings.ThemeMode.system:

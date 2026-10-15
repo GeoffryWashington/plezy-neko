@@ -210,7 +210,11 @@ Future<StartupThemeResolution> _resolveStartupTheme() async {
   ThemeProvider.applyWindowChromeBrightness(
     ThemeProvider.isDarkFor(mode, WidgetsBinding.instance.platformDispatcher.platformBrightness),
   );
-  return (themeMode: ThemeProvider.materialThemeModeFor(mode), darkTheme: ThemeProvider.darkThemeFor(mode));
+  return (
+    themeMode: ThemeProvider.materialThemeModeFor(mode),
+    darkTheme: ThemeProvider.darkThemeFor(mode),
+    lightTheme: ThemeProvider.lightThemeFor(mode),
+  );
 }
 
 /// Wraps [step] so a failure names the gate phase it came from.
@@ -621,7 +625,7 @@ Future<void> showRepairOutcomeDialog(
 }
 
 /// Theme the startup frames adopt once the persisted preference is readable.
-typedef StartupThemeResolution = ({material.ThemeMode themeMode, ThemeData darkTheme});
+typedef StartupThemeResolution = ({material.ThemeMode themeMode, ThemeData darkTheme, ThemeData lightTheme});
 
 /// Mounts a Flutter-owned startup frame before invoking the asynchronous
 /// initialization gate. The generic seam keeps frame ordering, failure, and
@@ -832,7 +836,7 @@ class _StartupBootstrapState<T> extends State<StartupBootstrap<T>> {
         builder: (context) => InputModeTracker(
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
-            theme: widget.lightTheme,
+            theme: resolved?.lightTheme ?? widget.lightTheme,
             darkTheme: resolved?.darkTheme ?? widget.darkTheme,
             themeMode: resolved?.themeMode ?? widget.themeMode,
             home: Builder(builder: _buildBootstrapHome),

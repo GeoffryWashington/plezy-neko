@@ -117,6 +117,12 @@
     "latestVersion": "You are on the latest version",
     "checkFailed": "Failed to check for updates"
   },
+  "neko": {
+    "loading": "Nya~ loading…",
+    "empty": "Nothing here yet, nya…",
+    "error": "Oh no! Something went wrong, nya…",
+    "mascotToggle": "Show dancing mascot"
+  },
   "settings": {
     "title": "Settings",
     "supportDeveloper": "Support Plezy",
@@ -141,6 +147,8 @@
     "lightTheme": "Light",
     "darkTheme": "Dark",
     "oledTheme": "OLED",
+    "nekoTheme": "Neko Maid",
+    "nekoNightTheme": "Neko Night",
     "libraryDensity": "Library Density",
     "displayScale": "Display Scale",
     "compact": "Compact",

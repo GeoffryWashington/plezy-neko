@@ -194,6 +194,7 @@ void main() {
     resolved.complete((
       themeMode: ThemeProvider.materialThemeModeFor(settings.ThemeMode.oled),
       darkTheme: ThemeProvider.darkThemeFor(settings.ThemeMode.oled),
+      lightTheme: ThemeProvider.lightThemeFor(settings.ThemeMode.oled),
     ));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
