@@ -11,6 +11,7 @@ import 'package:path/path.dart' as path;
 
 import 'package:provider/provider.dart';
 
+import '../../../models/picture_adjustments.dart';
 import '../../../models/shader_preset.dart';
 import '../../../media/ids.dart';
 import '../../../media/media_file_info.dart';
@@ -25,11 +26,13 @@ import '../../../services/scoped_player_prefs.dart';
 import '../../../services/settings_service.dart';
 import '../../../services/sleep_timer_service.dart';
 import '../../../services/video_filter_manager.dart';
+import '../../../focus/focusable_slider.dart';
 import '../../../focus/focusable_wrapper.dart';
 import '../../../utils/dialogs.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/error_message_utils.dart';
 import '../../../utils/formatters.dart';
+import '../../../utils/gpu_info.dart';
 import '../../../utils/platform_detector.dart';
 import '../../../utils/audio_channel_limit_labels.dart';
 import '../../../utils/quality_preset_labels.dart';
@@ -1323,67 +1326,269 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
     );
   }
 
+  bool? _hasRtx;
+  PictureAdjustments? _picture;
+
   Widget _buildShaderView() {
     if (_state.shaderService == null) return const SizedBox.shrink();
+
+    // Load GPU info once
+    if (_hasRtx == null) {
+      GpuInfo.hasNvidiaRtx().then((v) {
+        if (mounted) setState(() => _hasRtx = v);
+      });
+    }
+
+    // Lazy-init picture adjustments
+    _picture ??= PictureAdjustments.fromJson(SettingsService.instance.read(SettingsService.pictureAdjustments));
 
     return Consumer<ShaderProvider>(
       builder: (context, shaderProvider, _) {
         final currentPreset = _state.shaderService!.currentPreset;
         final presets = shaderProvider.allPresets;
 
-        // +1 for the import button at the end
-        return ListView.builder(
-          shrinkWrap: true,
-          itemCount: presets.length + 1,
-          itemBuilder: (context, index) {
-            if (index == presets.length) {
-              return FocusableListTile(
-                leading: AppIcon(Symbols.add_rounded, fill: 1, color: tokens(context).textMuted),
-                title: Text(t.shaders.importShader),
-                onTap: () => _importCustomShader(shaderProvider),
-              );
-            }
+        // Group presets by method
+        final methodGroups = <ShaderPresetType, List<ShaderPreset>>{
+          ShaderPresetType.nvidiaVsr: [],
+          ShaderPresetType.nvscaler: [],
+          ShaderPresetType.amdFsr: [],
+          ShaderPresetType.amdCas: [],
+          ShaderPresetType.artcnn: [],
+          ShaderPresetType.anime4k: [],
+          ShaderPresetType.custom: [],
+        };
+        for (final p in presets) {
+          if (p.type != ShaderPresetType.none) {
+            methodGroups[p.type]?.add(p);
+          }
+        }
 
-            final preset = presets[index];
-            final isSelected = preset.id == currentPreset.id;
-            final isCustom = preset.type == ShaderPresetType.custom;
-            final presetName = _shaderPresetTitle(preset);
+        // Ordered methods list
+        final methods = <ShaderPresetType>[];
+        if (_hasRtx == true && methodGroups[ShaderPresetType.nvidiaVsr]!.isNotEmpty) {
+          methods.add(ShaderPresetType.nvidiaVsr);
+        }
+        if (methodGroups[ShaderPresetType.nvscaler]!.isNotEmpty) methods.add(ShaderPresetType.nvscaler);
+        if (methodGroups[ShaderPresetType.amdFsr]!.isNotEmpty) methods.add(ShaderPresetType.amdFsr);
+        if (methodGroups[ShaderPresetType.amdCas]!.isNotEmpty) methods.add(ShaderPresetType.amdCas);
+        if (methodGroups[ShaderPresetType.artcnn]!.isNotEmpty) methods.add(ShaderPresetType.artcnn);
+        if (methodGroups[ShaderPresetType.anime4k]!.isNotEmpty) methods.add(ShaderPresetType.anime4k);
+        if (methodGroups[ShaderPresetType.custom]!.isNotEmpty) methods.add(ShaderPresetType.custom);
 
-            return FocusableListTile(
-              title: Text(presetName, style: TextStyle(color: isSelected ? Colors.amber : null)),
-              subtitle: _getShaderSubtitle(preset) != null
-                  ? Text(_getShaderSubtitle(preset)!, style: TextStyle(color: tokens(context).textMuted, fontSize: 12))
-                  : null,
-              trailing: Row(
-                mainAxisSize: .min,
-                children: [
-                  if (isSelected) const AppIcon(Symbols.check_rounded, fill: 1, color: Colors.amber),
-                  if (isCustom) ...[
-                    if (isSelected) const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => _deleteCustomShader(shaderProvider, preset),
-                      child: AppIcon(Symbols.delete_rounded, fill: 1, color: tokens(context).textMuted, size: 20),
-                    ),
-                  ],
-                ],
+        final lastPresetId = SettingsService.instance.read(SettingsService.enhanceLastPresetId);
+        final lastPreset = shaderProvider.findPresetById(lastPresetId) ??
+            ShaderPreset.fromId('amd_cas') ??
+            ShaderPreset.none;
+
+        final isEnabled = currentPreset.isEnabled;
+        final currentMethod = currentPreset.type;
+        final currentMethodPresets = methodGroups[currentMethod] ?? const <ShaderPreset>[];
+
+        final children = <Widget>[
+          // a) Master toggle
+          SwitchListTile(
+            title: Text(t.shaders.enhanceToggle),
+            subtitle: Text(t.shaders.enhanceToggleSubtitle),
+            value: isEnabled,
+            onChanged: (on) => _selectEnhancePreset(on ? lastPreset : ShaderPreset.none),
+          ),
+        ];
+
+        if (isEnabled) {
+          // b) Method dropdown
+          children.add(
+            ListTile(
+              title: Text(t.shaders.method),
+              trailing: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 260),
+                child: DropdownButton<ShaderPresetType>(
+                  value: methods.contains(currentMethod) ? currentMethod : null,
+                  isExpanded: true,
+                  items: methods
+                      .map((m) => DropdownMenuItem<ShaderPresetType>(
+                            value: m,
+                            child: Text(_methodLabel(m)),
+                          ))
+                      .toList(),
+                  onChanged: (m) {
+                    if (m == null) return;
+                    final first = methodGroups[m]!.first;
+                    _selectEnhancePreset(first);
+                  },
+                ),
               ),
-              onTap: () async {
-                // Disable ambient lighting when selecting a shader
-                if (preset.type != ShaderPresetType.none && _state.isAmbientLightingEnabled) {
-                  _state.onToggleAmbientLighting?.call();
-                }
-                await _state.shaderService!.applyPreset(preset);
-                await ScopedPlayerPrefs.write(ScopedPlayerPrefs.shaderPreset, _state.metadata, preset.id);
-                shaderProvider.setCurrentPreset(preset);
-                if (!context.mounted) return;
-                _state.onShaderChanged?.call();
-                OverlaySheetController.of(context).close();
-              },
+            ),
+          );
+
+          // c) Variant dropdown (only when >1 preset in current method)
+          if (currentMethodPresets.length > 1) {
+            children.add(
+              ListTile(
+                title: Text(t.shaders.variant),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 260),
+                      child: DropdownButton<String>(
+                        value: currentPreset.id,
+                        isExpanded: true,
+                        items: currentMethodPresets
+                            .map((p) {
+                              final subtitle = _getShaderSubtitle(p);
+                              final label = (subtitle != null && subtitle.isNotEmpty)
+                                  ? '${_shaderPresetTitle(p)} · $subtitle'
+                                  : _shaderPresetTitle(p);
+                              return DropdownMenuItem<String>(
+                                value: p.id,
+                                child: Text(label, overflow: TextOverflow.ellipsis),
+                              );
+                            })
+                            .toList(),
+                        onChanged: (id) {
+                          if (id == null) return;
+                          final preset = shaderProvider.findPresetById(id);
+                          if (preset != null) _selectEnhancePreset(preset);
+                        },
+                      ),
+                    ),
+                    if (currentPreset.type == ShaderPresetType.custom)
+                      IconButton(
+                        icon: const Icon(Symbols.delete_rounded),
+                        onPressed: () => _deleteCustomShader(shaderProvider, currentPreset),
+                      ),
+                  ],
+                ),
+              ),
             );
-          },
+          }
+
+          // d) Import shader
+          children.add(
+            FocusableListTile(
+              leading: AppIcon(Symbols.add_rounded, fill: 1, color: tokens(context).textMuted),
+              title: Text(t.shaders.importShader),
+              onTap: () => _importCustomShader(shaderProvider),
+            ),
+          );
+
+          // e) Divider + Picture header with reset
+          children.add(const Divider());
+          children.add(
+            ListTile(
+              title: Text(t.shaders.picture),
+              trailing: TextButton(
+                onPressed: () {
+                  setState(() => _picture = PictureAdjustments.neutral);
+                  _state.shaderService!.applyPictureAdjustments(_picture!);
+                },
+                child: Text(t.common.reset),
+              ),
+            ),
+          );
+
+          // f) Five slider rows
+          children.add(_buildPictureSliderRow(context, t.shaders.brightness, _picture!.brightness, (v) => _updatePictureField('brightness', v)));
+          children.add(_buildPictureSliderRow(context, t.shaders.contrast, _picture!.contrast, (v) => _updatePictureField('contrast', v)));
+          children.add(_buildPictureSliderRow(context, t.shaders.saturation, _picture!.saturation, (v) => _updatePictureField('saturation', v)));
+          children.add(_buildPictureSliderRow(context, t.shaders.gamma, _picture!.gamma, (v) => _updatePictureField('gamma', v)));
+          children.add(_buildPictureSliderRow(context, t.shaders.hue, _picture!.hue, (v) => _updatePictureField('hue', v)));
+        }
+
+        return ListView(
+          shrinkWrap: true,
+          children: children,
         );
       },
     );
+  }
+
+  String _methodLabel(ShaderPresetType type) => switch (type) {
+        ShaderPresetType.nvidiaVsr => t.shaders.methodNvidiaVsr,
+        ShaderPresetType.nvscaler => t.shaders.methodNvscaler,
+        ShaderPresetType.amdFsr => t.shaders.methodFsr,
+        ShaderPresetType.amdCas => t.shaders.methodCas,
+        ShaderPresetType.artcnn => t.shaders.methodArtcnn,
+        ShaderPresetType.anime4k => t.shaders.methodAnime4k,
+        ShaderPresetType.custom => t.shaders.methodCustom,
+        _ => type.name,
+      };
+
+  Widget _buildPictureSliderRow(BuildContext context, String label, int value, ValueChanged<int> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label),
+              Text('$value', style: TextStyle(color: tokens(context).textMuted)),
+            ],
+          ),
+          FocusableSlider(
+            value: value.toDouble(),
+            min: -100,
+            max: 100,
+            divisions: 40,
+            onChanged: (x) => onChanged(x.round()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _updatePictureField(String field, int value) {
+    setState(() {
+      switch (field) {
+        case 'brightness':
+          _picture = _picture!.copyWith(brightness: value);
+          break;
+        case 'contrast':
+          _picture = _picture!.copyWith(contrast: value);
+          break;
+        case 'saturation':
+          _picture = _picture!.copyWith(saturation: value);
+          break;
+        case 'gamma':
+          _picture = _picture!.copyWith(gamma: value);
+          break;
+        case 'hue':
+          _picture = _picture!.copyWith(hue: value);
+          break;
+      }
+    });
+    _state.shaderService!.applyPictureAdjustments(_picture!);
+  }
+
+  Future<void> _selectEnhancePreset(ShaderPreset preset) async {
+    // Disable ambient lighting when selecting a shader
+    if (preset.type != ShaderPresetType.none && _state.isAmbientLightingEnabled) {
+      _state.onToggleAmbientLighting?.call();
+    }
+    await _state.shaderService!.applyPreset(preset);
+    await ScopedPlayerPrefs.write(ScopedPlayerPrefs.shaderPreset, _state.metadata, preset.id);
+    if (!mounted) return;
+    context.read<ShaderProvider>().setCurrentPreset(preset);
+    _state.onShaderChanged?.call();
+
+    final error = _state.shaderService!.lastError;
+    if (error != null) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(content: Text(error)));
+      if (preset.isEnabled) {
+        if (!mounted) return;
+        await _selectEnhancePreset(ShaderPreset.none);
+      }
+      return;
+    }
+
+    if (preset.isEnabled) {
+      await SettingsService.instance.write(SettingsService.enhanceLastPresetId, preset.id);
+    }
+    if (!mounted) return;
+
+    setState(() {});
   }
 
   Future<void> _importCustomShader(ShaderProvider shaderProvider) async {
@@ -1458,6 +1663,9 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
         if (config == null) return preset.name;
         return 'Anime4K ${_anime4kQualityLabel(config.quality)} ${config.mode.label}';
       case ShaderPresetType.nvscaler:
+      case ShaderPresetType.amdFsr:
+      case ShaderPresetType.amdCas:
+      case ShaderPresetType.nvidiaVsr:
       case ShaderPresetType.custom:
         return preset.name;
     }
@@ -1469,6 +1677,12 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
         return t.shaders.noShaderDescription;
       case ShaderPresetType.nvscaler:
         return t.shaders.nvscalerDescription;
+      case ShaderPresetType.amdFsr:
+        return t.shaders.fsrDescription;
+      case ShaderPresetType.amdCas:
+        return t.shaders.casDescription;
+      case ShaderPresetType.nvidiaVsr:
+        return t.shaders.vsrDescription;
       case ShaderPresetType.artcnn:
         if (preset.artcnnConfig != null) {
           final variant = _artcnnVariantLabel(preset.artcnnConfig!.variant);

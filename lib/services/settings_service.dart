@@ -33,6 +33,7 @@ export 'base_shared_preferences_service.dart'
         JsonPref;
 import '../models/audio_channel_limit.dart';
 import '../models/audio_quality_preset.dart';
+import '../models/picture_adjustments.dart';
 import '../models/transcode_quality_preset.dart';
 import '../navigation/navigation_tabs.dart';
 import '../utils/platform_detector.dart';
@@ -797,6 +798,13 @@ class SettingsService extends BaseSharedPreferencesService {
   static const hideSpoilers = BoolPref('hide_spoilers');
   static const showNavBarLabels = BoolPref('show_nav_bar_labels', defaultValue: true);
   static const globalShaderPreset = StringPref('global_shader_preset', defaultValue: 'none');
+  static final pictureAdjustments = JsonPref<PictureAdjustments>(
+    'picture_adjustments',
+    defaultValue: PictureAdjustments.neutral,
+    encode: (v) => json.encode(v.toJson()),
+    decode: PictureAdjustments.fromJson,
+  );
+  static const enhanceLastPresetId = StringPref('enhance_last_preset_id', defaultValue: 'amd_cas');
   static const requireProfileSelectionOnOpen = BoolPref('require_profile_selection_on_open');
   static const useExternalPlayer = _UseExternalPlayerPref();
   static const forceTvMode = BoolPref('force_tv_mode');

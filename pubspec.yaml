@@ -21,6 +21,7 @@ dependencies:
   url_launcher: ^6.3.0
   uuid: ^4.4.0
   window_manager: ^0.5.1
+  win32_registry: ^2.1.0
   logger: ^2.7.0
   package_info_plus: ^9.0.0
   device_info_plus: ^12.3.0
@@ -160,6 +161,7 @@ flutter:
     - assets/shaders/nvscaler/
     - assets/shaders/artcnn/
     - assets/shaders/anime4k/
+    - assets/shaders/amd/
     - assets/player_icons/
     - assets/rating_icons/
     - assets/neko/

@@ -4,7 +4,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'shader_preset.freezed.dart';
 part 'shader_preset.g.dart';
 
-enum ShaderPresetType { none, nvscaler, artcnn, anime4k, custom }
+enum ShaderPresetType { none, nvscaler, artcnn, anime4k, custom, amdFsr, amdCas, nvidiaVsr }
 
 /// ArtCNN real-time model sizes.
 enum ArtCNNModel {
@@ -137,6 +137,34 @@ class ShaderPreset {
     nvscalerConfig: NVScalerConfig(),
   );
 
+  /// AMD FSR 1.0 preset
+  static const amdFsrDefault = ShaderPreset(
+    id: 'amd_fsr',
+    name: 'AMD FSR 1.0',
+    type: ShaderPresetType.amdFsr,
+  );
+
+  /// AMD CAS preset
+  static const amdCasDefault = ShaderPreset(
+    id: 'amd_cas',
+    name: 'AMD CAS',
+    type: ShaderPresetType.amdCas,
+  );
+
+  /// AMD CAS (strong) preset
+  static const amdCasStrong = ShaderPreset(
+    id: 'amd_cas_strong',
+    name: 'AMD CAS (strong)',
+    type: ShaderPresetType.amdCas,
+  );
+
+  /// NVIDIA RTX Video Super Resolution (video filter, no GLSL)
+  static const nvidiaVsrDefault = ShaderPreset(
+    id: 'nvidia_vsr',
+    name: 'NVIDIA RTX Video Super Resolution',
+    type: ShaderPresetType.nvidiaVsr,
+  );
+
   static ShaderPreset artcnnPreset(ArtCNNModel model, ArtCNNVariant variant) => ShaderPreset(
     id: 'artcnn_${model.name}_${variant.slug}',
     name: variant == ArtCNNVariant.neutral ? 'ArtCNN ${model.label}' : 'ArtCNN ${model.label} ${variant.label}',
@@ -162,6 +190,10 @@ class ShaderPreset {
   static final List<ShaderPreset> _builtInPresets = List.unmodifiable([
     none,
     nvscalerDefault,
+    amdFsrDefault,
+    amdCasDefault,
+    amdCasStrong,
+    nvidiaVsrDefault,
     artcnnPreset(ArtCNNModel.c4f16, ArtCNNVariant.neutral),
     artcnnPreset(ArtCNNModel.c4f16, ArtCNNVariant.denoise),
     artcnnPreset(ArtCNNModel.c4f16, ArtCNNVariant.denoiseSharpen),

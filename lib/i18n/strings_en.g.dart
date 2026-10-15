@@ -4734,8 +4734,68 @@ class Translations$shaders$en {
 
 	// Translations
 
-	/// en: 'Shaders'
-	String get title => 'Shaders';
+	/// en: 'Enhance'
+	String get title => 'Enhance';
+
+	/// en: 'Enhance'
+	String get enhanceToggle => 'Enhance';
+
+	/// en: 'Sharpen or upscale the picture live. Off = lightest playback.'
+	String get enhanceToggleSubtitle => 'Sharpen or upscale the picture live. Off = lightest playback.';
+
+	/// en: 'Method'
+	String get method => 'Method';
+
+	/// en: 'Variant'
+	String get variant => 'Variant';
+
+	/// en: 'Picture'
+	String get picture => 'Picture';
+
+	/// en: 'Brightness'
+	String get brightness => 'Brightness';
+
+	/// en: 'Contrast'
+	String get contrast => 'Contrast';
+
+	/// en: 'Saturation'
+	String get saturation => 'Saturation';
+
+	/// en: 'Gamma'
+	String get gamma => 'Gamma';
+
+	/// en: 'Hue'
+	String get hue => 'Hue';
+
+	/// en: 'RTX Video Super Resolution'
+	String get methodNvidiaVsr => 'RTX Video Super Resolution';
+
+	/// en: 'NVIDIA Image Scaling'
+	String get methodNvscaler => 'NVIDIA Image Scaling';
+
+	/// en: 'AMD FSR 1.0'
+	String get methodFsr => 'AMD FSR 1.0';
+
+	/// en: 'AMD CAS'
+	String get methodCas => 'AMD CAS';
+
+	/// en: 'ArtCNN'
+	String get methodArtcnn => 'ArtCNN';
+
+	/// en: 'Anime4K'
+	String get methodAnime4k => 'Anime4K';
+
+	/// en: 'Custom'
+	String get methodCustom => 'Custom';
+
+	/// en: 'AMD FidelityFX upscaling with sharpening'
+	String get fsrDescription => 'AMD FidelityFX upscaling with sharpening';
+
+	/// en: 'AMD contrast-adaptive sharpening'
+	String get casDescription => 'AMD contrast-adaptive sharpening';
+
+	/// en: 'NVIDIA AI upscaling (RTX GPUs)'
+	String get vsrDescription => 'NVIDIA AI upscaling (RTX GPUs)';
 
 	/// en: 'No video enhancement'
 	String get noShaderDescription => 'No video enhancement';
@@ -9171,7 +9231,27 @@ extension on Translations {
 			'downloads.notificationDownloading' => 'Downloading...',
 			'downloads.notificationComplete' => 'Download complete',
 			'downloads.notificationPaused' => 'Download paused',
-			'shaders.title' => 'Shaders',
+			'shaders.title' => 'Enhance',
+			'shaders.enhanceToggle' => 'Enhance',
+			'shaders.enhanceToggleSubtitle' => 'Sharpen or upscale the picture live. Off = lightest playback.',
+			'shaders.method' => 'Method',
+			'shaders.variant' => 'Variant',
+			'shaders.picture' => 'Picture',
+			'shaders.brightness' => 'Brightness',
+			'shaders.contrast' => 'Contrast',
+			'shaders.saturation' => 'Saturation',
+			'shaders.gamma' => 'Gamma',
+			'shaders.hue' => 'Hue',
+			'shaders.methodNvidiaVsr' => 'RTX Video Super Resolution',
+			'shaders.methodNvscaler' => 'NVIDIA Image Scaling',
+			'shaders.methodFsr' => 'AMD FSR 1.0',
+			'shaders.methodCas' => 'AMD CAS',
+			'shaders.methodArtcnn' => 'ArtCNN',
+			'shaders.methodAnime4k' => 'Anime4K',
+			'shaders.methodCustom' => 'Custom',
+			'shaders.fsrDescription' => 'AMD FidelityFX upscaling with sharpening',
+			'shaders.casDescription' => 'AMD contrast-adaptive sharpening',
+			'shaders.vsrDescription' => 'NVIDIA AI upscaling (RTX GPUs)',
 			'shaders.noShaderDescription' => 'No video enhancement',
 			'shaders.nvscalerDescription' => 'NVIDIA image scaling for sharper video',
 			'shaders.artcnnVariantNeutral' => 'Neutral',
@@ -9474,6 +9554,8 @@ extension on Translations {
 			'seerr.requestFailed' => ({required Object error}) => 'Request failed: ${error}',
 			'seerr.requestsLoadFailed' => 'Couldn\'t load request options',
 			'seerr.nothingToRequest' => 'Everything is already available or requested.',
+			_ => null,
+		} ?? switch (path) {
 			'seerr.statusAvailable' => 'Available',
 			'seerr.statusPartiallyAvailable' => 'Partially available',
 			'seerr.statusRequested' => 'Requested',
@@ -9494,8 +9576,6 @@ extension on Translations {
 			'seerr.sessionRejectedAfterReauth' => 'The session was rejected after signing in again',
 			'seerr.permissionDenied' => 'Seerr denied this action: your account no longer has the required permission',
 			'seerr.permissionRevoked' => 'You no longer have permission to request this',
-			_ => null,
-		} ?? switch (path) {
 			'services.title' => 'Services',
 			'services.hubSubtitle' => 'Sync watch progress and request new titles.',
 			'services.integrations' => 'Integrations',

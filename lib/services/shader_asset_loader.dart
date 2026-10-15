@@ -45,6 +45,13 @@ class ShaderAssetLoader {
     'downscale': 'anime4k/Anime4K_AutoDownscalePre_x2.glsl',
   };
 
+  /// AMD FSR shader file
+  static const String _amdFsrShader = 'amd/FSR.glsl';
+
+  /// AMD CAS shader files
+  static const String _amdCasShader = 'amd/CAS.glsl';
+  static const String _amdCasStrongShader = 'amd/CAS_strong.glsl';
+
   /// Get the application-owned shader cache directory, creating it if needed.
   static Future<String> _getShaderDirectory() async {
     if (_cachedShaderDir != null) return _cachedShaderDir!;
@@ -283,7 +290,24 @@ class ShaderAssetLoader {
         final shaderFile = await _resolveManagedCustomShaderFile(fileName);
         if (shaderFile == null || !await shaderFile.exists()) return [];
         return [shaderFile.path];
+      case ShaderPresetType.amdFsr:
+        return _getBuiltInShaders([_amdFsrShader]);
+      case ShaderPresetType.amdCas:
+        final assetPath = preset.id == 'amd_cas_strong' ? _amdCasStrongShader : _amdCasShader;
+        return _getBuiltInShaders([assetPath]);
+      case ShaderPresetType.nvidiaVsr:
+        return [];
     }
+  }
+
+  /// Extract one or more built-in shader assets and return their file paths.
+  static Future<List<String>> _getBuiltInShaders(List<String> assetPaths) async {
+    final results = <String>[];
+    for (final assetPath in assetPaths) {
+      final extracted = await _extractShader(assetPath);
+      if (extracted != null) results.add(extracted);
+    }
+    return results;
   }
 
   /// Clear cached shader directory reference.

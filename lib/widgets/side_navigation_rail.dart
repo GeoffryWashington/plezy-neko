@@ -1119,18 +1119,21 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
                                       )
                                     : const SizedBox.shrink(),
                               ),
-                            Consumer<ThemeProvider>(
-                              builder: (context, themeProvider, _) => Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Center(
-                                  child: IconButton(
-                                    tooltip: Translations.of(context).neko.themeToggle,
-                                    isSelected: themeProvider.isNekoTheme,
-                                    icon: const Icon(Symbols.pets_rounded),
-                                    onPressed: themeProvider.toggleNekoTheme,
+                            Consumer<ThemeProvider?>(
+                              builder: (context, themeProvider, _) {
+                                if (themeProvider == null) return const SizedBox.shrink();
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Center(
+                                    child: IconButton(
+                                      tooltip: Translations.of(context).neko.themeToggle,
+                                      isSelected: themeProvider.isNekoTheme,
+                                      icon: const Icon(Symbols.pets_rounded),
+                                      onPressed: themeProvider.toggleNekoTheme,
+                                    ),
                                   ),
-                                ),
-                              ),
+                                );
+                              },
                             ),
                             if (_showFullscreenToggle)
                               AnimatedPadding(

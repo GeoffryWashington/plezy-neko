@@ -1,10 +1,12 @@
 import 'dart:io';
 
+import '../models/picture_adjustments.dart';
 import '../models/shader_preset.dart';
 import '../mpv/player/player.dart';
 import '../utils/app_logger.dart';
 import 'ambient_lighting_service.dart';
 import 'shader_asset_loader.dart';
+import 'settings_service.dart';
 
 /// Service for applying GLSL shaders to the MPV video player.
 ///
@@ -13,6 +15,9 @@ import 'shader_asset_loader.dart';
 /// in the chain after any upscaling/processing shaders.
 class ShaderService {
   final Player _player;
+
+  /// Set when the last preset application failed (e.g. VSR unavailable).
+  String? lastError;
 
   /// The preset in mpv's chain. Differs from [_requestedPreset] only while
   /// NVScaler is auto-skipped on HDR content.
@@ -35,6 +40,12 @@ class ShaderService {
   /// Check if the player is MPV (shaders are MPV-only)
   bool get isSupported => _player.playerType == 'mpv' && isPlatformSupported;
 
+  /// Persist and apply live picture adjustments (brightness, contrast, ...).
+  Future<void> applyPictureAdjustments(PictureAdjustments adj) async {
+    await SettingsService.instance.write(SettingsService.pictureAdjustments, adj);
+    await adj.applyTo(_player);
+  }
+
   /// Apply a shader preset to the video player.
   ///
   /// For NVScaler with auto-HDR skip enabled, will check video colorspace
@@ -43,6 +54,7 @@ class ShaderService {
   /// flow, an in-place swap) decides on stale or absent params;
   /// [reapplyForContent] settles it once a frame exists.
   Future<void> applyPreset(ShaderPreset preset) async {
+    lastError = null;
     if (!isSupported) {
       appLogger.d('ShaderService: Shaders not supported on ${_player.playerType}');
       return;
@@ -88,6 +100,8 @@ class ShaderService {
   static bool _skipsOnHdr(ShaderPreset preset) =>
       preset.type == ShaderPresetType.nvscaler && preset.nvscalerConfig?.autoHdrSkip == true;
 
+  bool _vsrFilterActive = false;
+
   /// Rebuild mpv's chain for [preset]: clear, append its shaders, keep
   /// ambient lighting last.
   Future<void> _applyChain(ShaderPreset preset) async {
@@ -97,6 +111,11 @@ class ShaderService {
     for (final shaderPath in shaderPaths) {
       await _player.command(['change-list', 'glsl-shaders', 'append', shaderPath]);
     }
+
+    if (preset.type == ShaderPresetType.nvidiaVsr) {
+      await _applyNvidiaVsr();
+    }
+
     _currentPreset = preset;
 
     // Re-append ambient lighting shader at end of chain
@@ -107,11 +126,65 @@ class ShaderService {
     }
   }
 
+  /// Apply NVIDIA RTX Video Super Resolution as a labeled video filter.
+  Future<void> _applyNvidiaVsr() async {
+    const vsrErrorMessage =
+        "RTX Video Super Resolution isn't available here (it needs an NVIDIA RTX GPU and hardware decoding).";
+
+    // Compute scale: clamp(osdHeight / videoHeight, 1.0, 4.0), rounded to 1 decimal.
+    double scale = 2.0;
+    try {
+      final osdHeightRaw = await _player.getProperty('osd-height');
+      final videoHeightRaw = await _player.getProperty('video-params/h');
+      final osd = double.tryParse(osdHeightRaw?.toString() ?? '');
+      final video = double.tryParse(videoHeightRaw?.toString() ?? '');
+      if (osd != null && video != null && video > 0) {
+        scale = (osd / video).clamp(1.0, 4.0);
+        scale = (scale * 10).roundToDouble() / 10;
+      }
+    } catch (_) {
+      scale = 2.0;
+    }
+
+    try {
+      await _player.command(['vf', 'add', '@nekovsr:d3d11vpp=scaling-mode=nvidia:scale=$scale']);
+      _vsrFilterActive = true;
+    } catch (e, st) {
+      appLogger.w('ShaderService: Failed to add VSR filter', error: e, stackTrace: st);
+      lastError = vsrErrorMessage;
+      return;
+    }
+
+    // Verify the filter actually took effect.
+    await Future.delayed(const Duration(milliseconds: 1500));
+    try {
+      final vf = await _player.getProperty('vf');
+      if (vf == null || !vf.toString().contains('nekovsr')) {
+        try {
+          await _player.command(['vf', 'remove', '@nekovsr']);
+        } catch (_) {}
+        _vsrFilterActive = false;
+        lastError = vsrErrorMessage;
+        appLogger.w('ShaderService: VSR filter not active after apply');
+      }
+    } catch (e, st) {
+      appLogger.w('ShaderService: Failed to verify VSR filter', error: e, stackTrace: st);
+      lastError = vsrErrorMessage;
+    }
+  }
+
   Future<void> _clearShaders() async {
     try {
       await _player.command(['change-list', 'glsl-shaders', 'clr', '']);
     } catch (e, st) {
       appLogger.w('ShaderService: Failed to clear shaders', error: e, stackTrace: st);
+    }
+    // Remove the VSR video filter if present (ignore failure).
+    if (_vsrFilterActive) {
+      try {
+        await _player.command(['vf', 'remove', '@nekovsr']);
+      } catch (_) {}
+      _vsrFilterActive = false;
     }
   }
 

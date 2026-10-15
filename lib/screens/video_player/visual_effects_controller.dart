@@ -4,6 +4,7 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../../i18n/strings.g.dart';
 import '../../media/media_item.dart';
+import '../../models/picture_adjustments.dart';
 import '../../models/shader_preset.dart';
 import '../../mpv/mpv.dart';
 import '../../providers/shader_provider.dart';
@@ -67,6 +68,22 @@ class VisualEffectsController {
     } catch (e) {
       appLogger.d('Could not apply shader preset', error: e);
     }
+
+    try {
+      final adj = SettingsService.instance.read(SettingsService.pictureAdjustments);
+      final player = _player();
+      if (player != null && !adj.isNeutral) await adj.applyTo(player);
+    } catch (e) {
+      appLogger.d('Could not apply picture adjustments', error: e);
+    }
+  }
+
+  /// Persist [adj] and apply it to the current player (works for neutral too —
+  /// that is how Reset is applied).
+  Future<void> applyPictureAdjustments(PictureAdjustments adj) async {
+    await SettingsService.instance.write(SettingsService.pictureAdjustments, adj);
+    final player = _player();
+    if (player != null) await adj.applyTo(player);
   }
 
   /// The picture's display aspect, or null before mpv has decoded a frame:
