@@ -36,6 +36,14 @@ class _NekoMascotState extends State<NekoMascot>
     'assets/neko/mascot_frames/frame_5.png',
     'assets/neko/mascot_frames/frame_6.png',
     'assets/neko/mascot_frames/frame_7.png',
+    'assets/neko/mascot_frames/frame_8.png',
+    'assets/neko/mascot_frames/frame_9.png',
+    'assets/neko/mascot_frames/frame_10.png',
+    'assets/neko/mascot_frames/frame_11.png',
+    'assets/neko/mascot_frames/frame_12.png',
+    'assets/neko/mascot_frames/frame_13.png',
+    'assets/neko/mascot_frames/frame_14.png',
+    'assets/neko/mascot_frames/frame_15.png',
   ];
 
   static const String _staticFrame = 'assets/neko/mascot.png';
@@ -53,7 +61,7 @@ class _NekoMascotState extends State<NekoMascot>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1280),
+      duration: const Duration(milliseconds: 3200),
     )..repeat();
   }
 
@@ -154,22 +162,29 @@ class _NekoMascotState extends State<NekoMascot>
       animation: _controller,
       builder: (context, _) {
         final phase = _controller.value;
-        final frameIndex = _frameIndexForPhase(phase);
-        final framePath = _frames[frameIndex];
 
-        // Vertical bounce: 4 small hops per cycle.
+        // Crossfade frame math.
+        final pos = phase * 16;
+        final i = pos.floor() % 16;
+        final t = pos - pos.floor();
+        final fade = t < 0.6
+            ? 0.0
+            : Curves.easeInOut.transform((t - 0.6) / 0.4);
+        final next = (i + 1) % 16;
+
+        // Vertical bounce: 2 soft hops per cycle.
         final bounce =
-            -math.sin(2 * math.pi * phase * 4).abs() * widget.height * 0.035;
+            -math.sin(2 * math.pi * phase * 2).abs() * widget.height * 0.0175;
 
-        // Squash & stretch.
-        final scaleY = 1 + 0.03 * math.cos(2 * math.pi * phase * 4);
+        // Squash & stretch (halved amplitude).
+        final scaleY = 1 + 0.015 * math.cos(2 * math.pi * phase * 2);
         final scaleX = 2 - scaleY;
 
-        // Sway rotation ±3°.
-        final swayAngle = math.sin(2 * math.pi * phase) * (3 * math.pi / 180);
+        // Sway rotation ±2°.
+        final swayAngle = math.sin(2 * math.pi * phase) * (2 * math.pi / 180);
 
         // Shadow shrinks a bit when she is up.
-        final maxBounce = widget.height * 0.035;
+        final maxBounce = widget.height * 0.0175;
         final shadowScale = 1.0 - (bounce.abs() / maxBounce) * 0.15;
 
         final shadowColor = decor.cocoa.withValues(alpha: 0.18);
@@ -189,7 +204,7 @@ class _NekoMascotState extends State<NekoMascot>
                 ),
               ),
             ),
-            // Mascot with layered procedural motion.
+            // Mascot with layered procedural motion + crossfade.
             Transform.translate(
               offset: Offset(0, bounce),
               child: Transform.rotate(
@@ -199,16 +214,31 @@ class _NekoMascotState extends State<NekoMascot>
                   scaleX: scaleX,
                   scaleY: scaleY,
                   alignment: Alignment.bottomCenter,
-                  child: Image(
-                    image: _provider(framePath, context),
-                    height: widget.height,
-                    gaplessPlayback: true,
-                    filterQuality: FilterQuality.medium,
+                  child: Stack(
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      Image(
+                        image: _provider(_frames[i], context),
+                        height: widget.height,
+                        gaplessPlayback: true,
+                        filterQuality: FilterQuality.medium,
+                      ),
+                      if (fade > 0)
+                        Opacity(
+                          opacity: fade,
+                          child: Image(
+                            image: _provider(_frames[next], context),
+                            height: widget.height,
+                            gaplessPlayback: true,
+                            filterQuality: FilterQuality.medium,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
             ),
-            // Floating hearts / music notes (max 4 alive; we spawn 3 per cycle).
+            // Floating hearts / music notes (max 4 alive; we spawn 2 per cycle).
             if (widget.showHearts) ..._buildHearts(decor, phase),
           ],
         );
@@ -218,8 +248,8 @@ class _NekoMascotState extends State<NekoMascot>
 
   /// Derives heart / note positions purely from [phase] (no timers).
   List<Widget> _buildHearts(NekoDecor decor, double phase) {
-    const spawnPhases = [0.1, 0.43, 0.76];
-    const lifetime = 0.75; // 960 ms / 1280 ms cycle
+    const spawnPhases = [0.1, 0.6];
+    const lifetime = 0.5625; // 1800 ms / 3200 ms cycle
     final result = <Widget>[];
 
     for (var i = 0; i < spawnPhases.length; i++) {

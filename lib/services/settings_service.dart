@@ -892,6 +892,12 @@ class SettingsService extends BaseSharedPreferencesService {
     values: ThemeMode.values,
     defaultValueProvider: _tvAwareThemeModeDefault,
   );
+  /// Baseline theme to restore when the Neko theme toggle is switched off.
+  static const nekoPreviousThemeMode = EnumPref<ThemeMode>(
+    'neko_previous_theme_mode',
+    values: ThemeMode.values,
+    defaultValue: ThemeMode.system,
+  );
   static const videoPlayerNavigationEnabled = BoolPref(
     'video_player_navigation_enabled',
     defaultValueProvider: PlatformDetector.isTV,

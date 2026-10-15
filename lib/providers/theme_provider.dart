@@ -141,6 +141,27 @@ class ThemeProvider extends ChangeNotifier with DisposableChangeNotifierMixin, W
     if (_settingsBinding.settings == null) _syncThemeMode(mode);
   }
 
+  bool get isNekoTheme => _themeMode == settings.ThemeMode.neko || _themeMode == settings.ThemeMode.nekoNight;
+
+  Future<void> setNekoThemeEnabled(bool enabled) async {
+    final service = _settingsBinding.settings ?? await settings.SettingsService.getInstance();
+    if (enabled && !isNekoTheme) {
+      await service.write(settings.SettingsService.nekoPreviousThemeMode, _themeMode);
+      final newMode = isDarkMode ? settings.ThemeMode.nekoNight : settings.ThemeMode.neko;
+      await service.write(settings.SettingsService.themeMode, newMode);
+      if (_settingsBinding.settings == null) _syncThemeMode(newMode);
+    } else if (!enabled && isNekoTheme) {
+      var previous = service.read(settings.SettingsService.nekoPreviousThemeMode);
+      if (previous == settings.ThemeMode.neko || previous == settings.ThemeMode.nekoNight) {
+        previous = settings.ThemeMode.system;
+      }
+      await service.write(settings.SettingsService.themeMode, previous);
+      if (_settingsBinding.settings == null) _syncThemeMode(previous);
+    }
+  }
+
+  Future<void> toggleNekoTheme() => setNekoThemeEnabled(!isNekoTheme);
+
   Future<void> reload() async {
     await _settingsBinding.bind();
     final service = _settingsBinding.settings;

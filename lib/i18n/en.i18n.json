@@ -121,7 +121,9 @@
     "loading": "Nya~ loading…",
     "empty": "Nothing here yet, nya…",
     "error": "Oh no! Something went wrong, nya…",
-    "mascotToggle": "Show dancing mascot"
+    "mascotToggle": "Show dancing mascot",
+    "themeToggle": "Catgirl theme",
+    "themeToggleSubtitle": "Neko Maid look with the dancing mascot"
   },
   "settings": {
     "title": "Settings",

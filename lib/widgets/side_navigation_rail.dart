@@ -29,6 +29,7 @@ import '../utils/scroll_utils.dart';
 import '../utils/library_grouping.dart';
 import 'music/equalizer_icon.dart';
 import '../providers/multi_server_provider.dart';
+import '../providers/theme_provider.dart';
 import '../services/fullscreen_state_manager.dart';
 import '../theme/mono_tokens.dart';
 import '../widgets/backend_badge.dart';
@@ -1118,6 +1119,19 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
                                       )
                                     : const SizedBox.shrink(),
                               ),
+                            Consumer<ThemeProvider>(
+                              builder: (context, themeProvider, _) => Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Center(
+                                  child: IconButton(
+                                    tooltip: Translations.of(context).neko.themeToggle,
+                                    isSelected: themeProvider.isNekoTheme,
+                                    icon: const Icon(Symbols.pets_rounded),
+                                    onPressed: themeProvider.toggleNekoTheme,
+                                  ),
+                                ),
+                              ),
+                            ),
                             if (_showFullscreenToggle)
                               AnimatedPadding(
                                 padding: .fromLTRB(horizontalPadding, 0, horizontalPadding, 12),

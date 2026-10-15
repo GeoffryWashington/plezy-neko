@@ -399,6 +399,12 @@ class Translations$neko$en {
 
 	/// en: 'Show dancing mascot'
 	String get mascotToggle => 'Show dancing mascot';
+
+	/// en: 'Catgirl theme'
+	String get themeToggle => 'Catgirl theme';
+
+	/// en: 'Neko Maid look with the dancing mascot'
+	String get themeToggleSubtitle => 'Neko Maid look with the dancing mascot';
 }
 
 // Path: settings
@@ -7542,6 +7548,8 @@ extension on Translations {
 			'neko.empty' => 'Nothing here yet, nya…',
 			'neko.error' => 'Oh no! Something went wrong, nya…',
 			'neko.mascotToggle' => 'Show dancing mascot',
+			'neko.themeToggle' => 'Catgirl theme',
+			'neko.themeToggleSubtitle' => 'Neko Maid look with the dancing mascot',
 			'settings.title' => 'Settings',
 			'settings.supportDeveloper' => 'Support Plezy',
 			'settings.supportDeveloperDescription' => 'Donate via Liberapay to fund development',
@@ -7944,10 +7952,10 @@ extension on Translations {
 			'fileInfo.colorRange' => 'Color Range',
 			'fileInfo.colorPrimaries' => 'Color Primaries',
 			'fileInfo.colorTransfer' => 'Color Transfer',
-			'fileInfo.chromaSubsampling' => 'Chroma Subsampling',
-			'fileInfo.chromaLocation' => 'Chroma Location',
 			_ => null,
 		} ?? switch (path) {
+			'fileInfo.chromaSubsampling' => 'Chroma Subsampling',
+			'fileInfo.chromaLocation' => 'Chroma Location',
 			'fileInfo.scanType' => 'Scan Type',
 			'fileInfo.interlaced' => 'Interlaced',
 			'fileInfo.anamorphic' => 'Anamorphic',
@@ -8458,10 +8466,10 @@ extension on Translations {
 			'discover.person.dateWithAge' => ({required Object date, required Object age}) => '${date} (age ${age})',
 			'discover.person.dateWithAgeAtDeath' => ({required Object date, required Object age}) => '${date} (aged ${age})',
 			'errors.searchFailed' => ({required Object error}) => 'Search failed: ${error}',
-			'errors.searchUnavailable' => 'Search could not reach any media server.',
-			'errors.connectionTimeout' => ({required Object context}) => 'Connection timeout while loading ${context}',
 			_ => null,
 		} ?? switch (path) {
+			'errors.searchUnavailable' => 'Search could not reach any media server.',
+			'errors.connectionTimeout' => ({required Object context}) => 'Connection timeout while loading ${context}',
 			'errors.connectionFailed' => 'Unable to connect to media server',
 			'errors.unableToLoad' => ({required Object context}) => 'Unable to load ${context}. Please try again.',
 			'errors.noClientAvailable' => 'No client available',
@@ -8972,10 +8980,10 @@ extension on Translations {
 			'watchTogether.copySessionCode' => 'Copy session code',
 			'watchTogether.hostControlsPlayback' => 'Host controls playback',
 			'watchTogether.anyoneCanControl' => 'Anyone can control playback',
-			'watchTogether.hostControls' => 'Host controls',
-			'watchTogether.anyoneControls' => 'Anyone controls',
 			_ => null,
 		} ?? switch (path) {
+			'watchTogether.hostControls' => 'Host controls',
+			'watchTogether.anyoneControls' => 'Anyone controls',
 			'watchTogether.participants' => 'Participants',
 			'watchTogether.host' => 'Host',
 			'watchTogether.hostBadge' => 'HOST',
@@ -9486,10 +9494,10 @@ extension on Translations {
 			'seerr.sessionRejectedAfterReauth' => 'The session was rejected after signing in again',
 			'seerr.permissionDenied' => 'Seerr denied this action: your account no longer has the required permission',
 			'seerr.permissionRevoked' => 'You no longer have permission to request this',
-			'services.title' => 'Services',
-			'services.hubSubtitle' => 'Sync watch progress and request new titles.',
 			_ => null,
 		} ?? switch (path) {
+			'services.title' => 'Services',
+			'services.hubSubtitle' => 'Sync watch progress and request new titles.',
 			'services.integrations' => 'Integrations',
 			'services.notConnected' => 'Not connected',
 			'services.connectedAs' => ({required Object username}) => 'Connected as @${username}',

@@ -33,6 +33,15 @@ class AppearanceSettingsScreen extends StatelessWidget {
         SettingsGroup(
           title: t.settings.display,
           children: [
+            Consumer<ThemeProvider>(
+              builder: (context, themeProvider, _) => SwitchListTile(
+                secondary: const Icon(Symbols.pets_rounded),
+                title: Text(t.neko.themeToggle),
+                subtitle: Text(t.neko.themeToggleSubtitle),
+                value: themeProvider.isNekoTheme,
+                onChanged: (v) => themeProvider.setNekoThemeEnabled(v),
+              ),
+            ),
             _themeSelector(),
             if (!PlatformDetector.isTV())
               SettingSwitchTile(
