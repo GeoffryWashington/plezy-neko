@@ -1935,7 +1935,12 @@
     "shaderImported": "Shader imported",
     "shaderImportFailed": "Failed to import shader",
     "deleteShader": "Delete Shader",
-    "deleteShaderConfirm": "Delete \"${name}\"?"
+    "deleteShaderConfirm": "Delete \"${name}\"?",
+    "sharpness": "Sharpness",
+    "compare": "Before / after",
+    "before": "Before",
+    "after": "After",
+    "compareHint": "Drag to compare"
   },
   "companionRemote": {
     "title": "Companion Remote",

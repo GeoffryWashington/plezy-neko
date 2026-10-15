@@ -270,6 +270,11 @@ class ShaderAssetLoader {
     return File(candidate);
   }
 
+  static const _amdCasScaledShader = 'amd/CAS-scaled.glsl';
+  static const _amdCasStrongScaledShader = 'amd/CAS-scaled_strong.glsl';
+  static const _amdCasLiveShader = 'amd/CAS_live.glsl';
+  static const _amdCasLiveScaledShader = 'amd/CAS-scaled_live.glsl';
+
   /// Get shader paths for a given preset.
   /// Returns an empty list for ShaderPresetType.none.
   static Future<List<String>> getShadersForPreset(ShaderPreset preset) async {
@@ -293,8 +298,10 @@ class ShaderAssetLoader {
       case ShaderPresetType.amdFsr:
         return _getBuiltInShaders([_amdFsrShader]);
       case ShaderPresetType.amdCas:
-        final assetPath = preset.id == 'amd_cas_strong' ? _amdCasStrongShader : _amdCasShader;
-        return _getBuiltInShaders([assetPath]);
+        if (preset.id == 'amd_cas_strong') {
+          return _getBuiltInShaders([_amdCasStrongShader, _amdCasStrongScaledShader]);
+        }
+        return _getBuiltInShaders([_amdCasShader, _amdCasScaledShader]);
       case ShaderPresetType.nvidiaVsr:
         return [];
     }
@@ -308,6 +315,11 @@ class ShaderAssetLoader {
       if (extracted != null) results.add(extracted);
     }
     return results;
+  }
+
+  /// Return the extracted paths of the CAS live-sharpening shader pair.
+  static Future<List<String>> getSharpenShaders() {
+    return _getBuiltInShaders([_amdCasLiveShader, _amdCasLiveScaledShader]);
   }
 
   /// Clear cached shader directory reference.

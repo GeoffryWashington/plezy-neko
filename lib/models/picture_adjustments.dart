@@ -10,6 +10,7 @@ class PictureAdjustments {
     this.saturation = 0,
     this.gamma = 0,
     this.hue = 0,
+    this.sharpness = 0,
   });
 
   static const neutral = PictureAdjustments();
@@ -19,13 +20,15 @@ class PictureAdjustments {
   final int saturation;
   final int gamma;
   final int hue;
+  final int sharpness;
 
   bool get isNeutral =>
       brightness == 0 &&
       contrast == 0 &&
       saturation == 0 &&
       gamma == 0 &&
-      hue == 0;
+      hue == 0 &&
+      sharpness == 0;
 
   PictureAdjustments copyWith({
     int? brightness,
@@ -33,6 +36,7 @@ class PictureAdjustments {
     int? saturation,
     int? gamma,
     int? hue,
+    int? sharpness,
   }) {
     return PictureAdjustments(
       brightness: brightness ?? this.brightness,
@@ -40,6 +44,7 @@ class PictureAdjustments {
       saturation: saturation ?? this.saturation,
       gamma: gamma ?? this.gamma,
       hue: hue ?? this.hue,
+      sharpness: sharpness ?? this.sharpness,
     );
   }
 
@@ -49,6 +54,7 @@ class PictureAdjustments {
         'saturation': saturation,
         'gamma': gamma,
         'hue': hue,
+        'sharpness': sharpness,
       };
 
   factory PictureAdjustments.fromJson(Object? json) {
@@ -59,12 +65,18 @@ class PictureAdjustments {
       saturation: _clamp(json['saturation']),
       gamma: _clamp(json['gamma']),
       hue: _clamp(json['hue']),
+      sharpness: _clampSharpness(json['sharpness']),
     );
   }
 
   static int _clamp(Object? value) {
     final v = value is int ? value : (value is num ? value.toInt() : 0);
     return v.clamp(-100, 100);
+  }
+
+  static int _clampSharpness(Object? value) {
+    final v = value is int ? value : (value is num ? value.toInt() : 0);
+    return v.clamp(0, 100);
   }
 
   /// Apply the five mpv picture-adjustment properties to [player].

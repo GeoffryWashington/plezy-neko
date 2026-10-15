@@ -30,6 +30,9 @@ class ShaderService {
   /// Reference to ambient lighting service for re-appending its shader after chain rebuilds.
   AmbientLightingService? ambientLightingService;
 
+  int _sharpness = 0;
+  List<String> _sharpenPaths = const [];
+
   ShaderService(this._player);
 
   /// The preset applied to the chain — none while NVScaler is auto-skipped.
@@ -44,6 +47,7 @@ class ShaderService {
   Future<void> applyPictureAdjustments(PictureAdjustments adj) async {
     await SettingsService.instance.write(SettingsService.pictureAdjustments, adj);
     await adj.applyTo(_player);
+    await setSharpness(adj.sharpness);
   }
 
   /// Apply a shader preset to the video player.
@@ -117,6 +121,12 @@ class ShaderService {
     }
 
     _currentPreset = preset;
+
+    // Re-append sharpen shaders if active (they were cleared above).
+    if (_sharpness > 0) {
+      _sharpenPaths = const [];
+      await setSharpness(_sharpness);
+    }
 
     // Re-append ambient lighting shader at end of chain
     await _reappendAmbientLighting();
@@ -227,6 +237,120 @@ class ShaderService {
       appLogger.d('ShaderService: HDR detection failed', error: e);
       return false;
     }
+  }
+
+  /// Set the CAS sharpening level (0 = off, 1..100 = intensity).
+  Future<void> setSharpness(int value) async {
+    final clamped = value.clamp(0, 100);
+    _sharpness = clamped;
+
+    if (clamped == 0) {
+      for (final p in _sharpenPaths) {
+        try {
+          await _player.command(['change-list', 'glsl-shaders', 'remove', p]);
+        } catch (_) {}
+      }
+      _sharpenPaths = const [];
+      return;
+    }
+
+    if (_sharpenPaths.isEmpty) {
+      final paths = await ShaderAssetLoader.getSharpenShaders();
+      for (final p in paths) {
+        await _player.command(['change-list', 'glsl-shaders', 'append', p]);
+      }
+      _sharpenPaths = paths;
+    }
+
+    await _player.command([
+      'change-list',
+      'glsl-shader-opts',
+      'set',
+      'SHARPENING=${(clamped / 100).toStringAsFixed(2)}',
+    ]);
+  }
+
+  /// Capture a before/after comparison screenshot of the current frame.
+  /// Returns the file paths, or null on failure.
+  Future<({String before, String after})?> captureComparison(String dir) async {
+    final wasPaused = (await _player.getProperty('pause')) == 'yes';
+    await _player.setProperty('pause', 'yes');
+
+    try {
+      final stamp = DateTime.now().millisecondsSinceEpoch;
+      final after = '$dir/neko_cmp_after_$stamp.png';
+      final before = '$dir/neko_cmp_before_$stamp.png';
+
+      // Screenshot with enhancements on.
+      await _player.command(['screenshot-to-file', after, 'window']);
+
+      // Save current picture properties.
+      final brightness = await _player.getProperty('brightness');
+      final contrast = await _player.getProperty('contrast');
+      final saturation = await _player.getProperty('saturation');
+      final gamma = await _player.getProperty('gamma');
+      final hue = await _player.getProperty('hue');
+
+      // Turn enhancements off.
+      await _player.command(['change-list', 'glsl-shaders', 'clr', '']);
+      await _player.setProperty('brightness', '0');
+      await _player.setProperty('contrast', '0');
+      await _player.setProperty('saturation', '0');
+      await _player.setProperty('gamma', '0');
+      await _player.setProperty('hue', '0');
+      await Future.delayed(const Duration(milliseconds: 180));
+
+      // Screenshot without enhancements.
+      await _player.command(['screenshot-to-file', before, 'window']);
+
+      // Restore picture properties and shader chain.
+      await _player.setProperty('brightness', brightness ?? '0');
+      await _player.setProperty('contrast', contrast ?? '0');
+      await _player.setProperty('saturation', saturation ?? '0');
+      await _player.setProperty('gamma', gamma ?? '0');
+      await _player.setProperty('hue', hue ?? '0');
+      await _applyChain(_currentPreset);
+
+      if (!wasPaused) {
+        await _player.setProperty('pause', 'no');
+      }
+
+      // Best-effort cleanup of old comparison files.
+      await _cleanupComparisonFiles(dir);
+
+      return (before: before, after: after);
+    } catch (e, st) {
+      appLogger.w('ShaderService: captureComparison failed', error: e, stackTrace: st);
+      try {
+        await _applyChain(_currentPreset);
+        if (!wasPaused) {
+          await _player.setProperty('pause', 'no');
+        }
+      } catch (_) {}
+      return null;
+    }
+  }
+
+  /// Delete comparison files older than the newest 4.
+  Future<void> _cleanupComparisonFiles(String dir) async {
+    try {
+      final directory = Directory(dir);
+      if (!await directory.exists()) return;
+      final entries = await directory.list().toList();
+      final files = <(File, DateTime)>[];
+      for (final e in entries) {
+        if (e is File && e.path.contains('neko_cmp_')) {
+          files.add((e, await e.lastModified()));
+        }
+      }
+      if (files.length <= 4) return;
+      files.sort((a, b) => b.$2.compareTo(a.$2));
+      for (final (f, _) in files.skip(4)) {
+        try {
+          await f.delete();
+        } catch (_) {}
+      }
+    } catch (_) {}
   }
 
   Future<void> disable() async {

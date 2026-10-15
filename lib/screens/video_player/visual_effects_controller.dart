@@ -73,6 +73,7 @@ class VisualEffectsController {
       final adj = SettingsService.instance.read(SettingsService.pictureAdjustments);
       final player = _player();
       if (player != null && !adj.isNeutral) await adj.applyTo(player);
+      if (adj.sharpness > 0) await shaderService.setSharpness(adj.sharpness);
     } catch (e) {
       appLogger.d('Could not apply picture adjustments', error: e);
     }

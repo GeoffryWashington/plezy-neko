@@ -4838,6 +4838,21 @@ class Translations$shaders$en {
 
 	/// en: 'Delete "${name}"?'
 	String deleteShaderConfirm({required Object name}) => 'Delete "${name}"?';
+
+	/// en: 'Sharpness'
+	String get sharpness => 'Sharpness';
+
+	/// en: 'Before / after'
+	String get compare => 'Before / after';
+
+	/// en: 'Before'
+	String get before => 'Before';
+
+	/// en: 'After'
+	String get after => 'After';
+
+	/// en: 'Drag to compare'
+	String get compareHint => 'Drag to compare';
 }
 
 // Path: companionRemote
@@ -9266,6 +9281,11 @@ extension on Translations {
 			'shaders.shaderImportFailed' => 'Failed to import shader',
 			'shaders.deleteShader' => 'Delete Shader',
 			'shaders.deleteShaderConfirm' => ({required Object name}) => 'Delete "${name}"?',
+			'shaders.sharpness' => 'Sharpness',
+			'shaders.compare' => 'Before / after',
+			'shaders.before' => 'Before',
+			'shaders.after' => 'After',
+			'shaders.compareHint' => 'Drag to compare',
 			'companionRemote.title' => 'Companion Remote',
 			'companionRemote.connectedTo' => ({required Object name}) => 'Connected to ${name}',
 			'companionRemote.unknownDevice' => 'Unknown Device',
@@ -9549,13 +9569,13 @@ extension on Translations {
 			'seerr.tags' => 'Tags',
 			'seerr.noTags' => 'No tags',
 			'seerr.defaultOption' => ({required Object name}) => '${name} (Default)',
+			_ => null,
+		} ?? switch (path) {
 			'seerr.animeNote' => 'This series is an anime.',
 			'seerr.requestSubmitted' => 'Request submitted',
 			'seerr.requestFailed' => ({required Object error}) => 'Request failed: ${error}',
 			'seerr.requestsLoadFailed' => 'Couldn\'t load request options',
 			'seerr.nothingToRequest' => 'Everything is already available or requested.',
-			_ => null,
-		} ?? switch (path) {
 			'seerr.statusAvailable' => 'Available',
 			'seerr.statusPartiallyAvailable' => 'Partially available',
 			'seerr.statusRequested' => 'Requested',

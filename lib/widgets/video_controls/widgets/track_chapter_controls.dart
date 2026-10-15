@@ -181,6 +181,34 @@ class TrackChapterControls extends StatelessWidget {
         );
         buttonIndex++;
 
+        if (state.shaderService != null && state.shaderService!.isSupported) {
+          final currentIndex = buttonIndex;
+          buttons.add(
+            _buildTrackButton(
+              buttonIndex: currentIndex,
+              icon: Symbols.auto_awesome_rounded,
+              isActive: state.shaderService!.currentPreset.isEnabled,
+              checked: state.shaderService!.currentPreset.isEnabled,
+              tooltip: t.shaders.title,
+              semanticLabel: t.shaders.title,
+              buttons: buttons,
+              onPressed: () {
+                state.onCancelAutoHide?.call();
+                OverlaySheetController.of(context)
+                    .show(
+                      builder: (_) => VideoSettingsSheet(
+                        player: player,
+                        trackControlsState: state,
+                        openEnhance: true,
+                      ),
+                    )
+                    .whenComplete(() => state.onStartAutoHide?.call());
+              },
+            ),
+          );
+          buttonIndex++;
+        }
+
         {
           final currentIndex = buttonIndex;
           buttons.add(

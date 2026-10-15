@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:plezy/widgets/app_icon.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 
 import 'package:provider/provider.dart';
 
@@ -350,11 +351,15 @@ class VideoSettingsSheet extends StatefulWidget {
   /// auto-hide) is read straight off it.
   final TrackControlsState trackControlsState;
 
+  /// Opens straight into the Enhance view.
+  final bool openEnhance;
+
   const VideoSettingsSheet({
     super.key,
     required this.player,
     this.supportsHdrControl,
     required this.trackControlsState,
+    this.openEnhance = false,
   });
 
   @override
@@ -380,6 +385,14 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
   StreamSubscription<void>? _hdrOutputChanged;
   late HdrToneMapping _hdrToneMapping;
   late AudioChannelLimit _audioChannelLimit;
+
+  // Before/after compare panel state
+  String? _cmpBefore;
+  String? _cmpAfter;
+  bool _cmpBusy = false;
+  double _cmpSplit = 0.5;
+  Timer? _cmpDebounce;
+  bool _cmpRequested = false;
 
   TrackControlsState get _state => widget.trackControlsState;
 
@@ -416,12 +429,14 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
       _hdrOutputChanged = widget.player.streams.hdrOutputChanged.listen((_) => _refreshLinuxHdrSupport());
     }
     _refreshLinuxHdrSupport();
+    if (widget.openEnhance) _currentView = _SettingsView.shader;
   }
 
   @override
   void dispose() {
     _hdrSupportLifecycle?.dispose();
     _hdrOutputChanged?.cancel();
+    _cmpDebounce?.cancel();
     super.dispose();
   }
 
@@ -1342,6 +1357,12 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
     // Lazy-init picture adjustments
     _picture ??= PictureAdjustments.fromJson(SettingsService.instance.read(SettingsService.pictureAdjustments));
 
+    // First-time compare capture
+    if (!_cmpRequested) {
+      _cmpRequested = true;
+      _scheduleCompare(const Duration(milliseconds: 250));
+    }
+
     return Consumer<ShaderProvider>(
       builder: (context, shaderProvider, _) {
         final currentPreset = _state.shaderService!.currentPreset;
@@ -1385,6 +1406,8 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
         final currentMethodPresets = methodGroups[currentMethod] ?? const <ShaderPreset>[];
 
         final children = <Widget>[
+          // Before/after compare panel
+          _buildComparePanel(),
           // a) Master toggle
           SwitchListTile(
             title: Text(t.shaders.enhanceToggle),
@@ -1480,6 +1503,8 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
               trailing: TextButton(
                 onPressed: () {
                   setState(() => _picture = PictureAdjustments.neutral);
+                  _state.shaderService!.applyPictureAdjustments(_picture!);
+                  _scheduleCompare();
                   _state.shaderService!.applyPictureAdjustments(_picture!);
                 },
                 child: Text(t.common.reset),
@@ -1589,6 +1614,121 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
     if (!mounted) return;
 
     setState(() {});
+    _scheduleCompare();
+  }
+
+  void _scheduleCompare([Duration delay = const Duration(milliseconds: 600)]) {
+    _cmpDebounce?.cancel();
+    _cmpDebounce = Timer(delay, _refreshCompare);
+  }
+
+  Future<void> _refreshCompare() async {
+    if (_cmpBusy || _state.shaderService == null) return;
+    setState(() => _cmpBusy = true);
+    final dir = (await getTemporaryDirectory()).path;
+    final r = await _state.shaderService!.captureComparison(dir);
+    if (!mounted) return;
+    setState(() {
+      _cmpBusy = false;
+      if (r != null) {
+        _cmpBefore = r.before;
+        _cmpAfter = r.after;
+      }
+    });
+  }
+
+  Widget _buildComparePanel() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(t.shaders.compare),
+              const Spacer(),
+              if (_cmpBusy)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                IconButton(
+                  icon: const Icon(Symbols.refresh_rounded),
+                  iconSize: 18,
+                  onPressed: _refreshCompare,
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  if (_cmpBefore == null || _cmpAfter == null) {
+                    return Container(
+                      color: Colors.black26,
+                      alignment: Alignment.center,
+                      child: Text(
+                        t.shaders.compareHint,
+                        style: const TextStyle(fontSize: 12, color: Colors.white54),
+                      ),
+                    );
+                  }
+                  return GestureDetector(
+                    onHorizontalDragUpdate: (d) =>
+                        setState(() => _cmpSplit = (_cmpSplit + d.delta.dx / c.maxWidth).clamp(0.0, 1.0)),
+                    onTapDown: (d) =>
+                        setState(() => _cmpSplit = (d.localPosition.dx / c.maxWidth).clamp(0.0, 1.0)),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.file(File(_cmpAfter!), fit: BoxFit.cover, gaplessPlayback: true),
+                        ClipRect(
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: _cmpSplit,
+                            child: Image.file(
+                              File(_cmpBefore!),
+                              fit: BoxFit.cover,
+                              gaplessPlayback: true,
+                              width: c.maxWidth,
+                              height: c.maxHeight,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: c.maxWidth * _cmpSplit - 1,
+                          top: 0,
+                          bottom: 0,
+                          child: Container(width: 2, color: Colors.white),
+                        ),
+                        Positioned(left: 8, top: 8, child: _cmpLabel(t.shaders.before)),
+                        Positioned(right: 8, top: 8, child: _cmpLabel(t.shaders.after)),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _cmpLabel(String s) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.black54,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(s, style: const TextStyle(fontSize: 11, color: Colors.white)),
+    );
   }
 
   Future<void> _importCustomShader(ShaderProvider shaderProvider) async {
