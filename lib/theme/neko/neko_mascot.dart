@@ -190,6 +190,7 @@ class _NekoMascotState extends State<NekoMascot>
     if (status != AnimationStatus.completed) return;
     if (!mounted) return;
     setState(() => _isHappy = false);
+    _happy.value = 0;
     _happy.removeStatusListener(_onHappyStatus);
     _scheduleBlink();
   }
@@ -270,7 +271,7 @@ class _NekoMascotState extends State<NekoMascot>
       animation: Listenable.merge([_idle, _happy]),
       builder: (context, _) {
         final v = _idle.value;
-        final happyActive = _happy.isAnimating || _happy.value > 0;
+        final happyActive = _isHappy && _happy.isAnimating;
         final t = _happy.value;
 
         // Determine which frame to show.
