@@ -28,8 +28,9 @@ class _NekoMascotState extends State<NekoMascot>
     with TickerProviderStateMixin {
   static const String _idleFrame = 'assets/neko/idle.png';
   static const String _blinkFrame = 'assets/neko/idle_blink.png';
-  static const String _happy0 = 'assets/neko/happy_0.png';
-  static const String _happy1 = 'assets/neko/happy_1.png';
+  static const String _reducedMotionFrame =
+      'assets/neko/react/react_36.webp';
+  static const int _reactFrameCount = 74;
 
   late final AnimationController _idle;
   late final AnimationController _happy;
@@ -48,7 +49,7 @@ class _NekoMascotState extends State<NekoMascot>
 
   ImageProvider _provider(String path, BuildContext context) {
     final dpr = MediaQuery.devicePixelRatioOf(context);
-    final h = (widget.height * dpr).round().clamp(1, 640);
+    final h = (widget.height * dpr).round().clamp(1, 360);
     return ResizeImage(AssetImage(path), height: h, allowUpscaling: false);
   }
 
@@ -61,7 +62,7 @@ class _NekoMascotState extends State<NekoMascot>
     )..repeat();
     _happy = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 3083),
     );
   }
 
@@ -77,9 +78,17 @@ class _NekoMascotState extends State<NekoMascot>
     final key = (widget.height, dpr);
     if (_lastPrecached == key) return;
     _lastPrecached = key;
-    for (final path in [_idleFrame, _blinkFrame, _happy0, _happy1]) {
+    for (final path in [_idleFrame, _blinkFrame]) {
       precacheImage(_provider(path, context), context);
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      for (var i = 0; i < _reactFrameCount; i++) {
+        final path =
+            'assets/neko/react/react_${i.toString().padLeft(2, '0')}.webp';
+        precacheImage(_provider(path, context), context);
+      }
+    });
   }
 
   @override
@@ -209,7 +218,7 @@ class _NekoMascotState extends State<NekoMascot>
     final reducedMotion = MediaQuery.maybeDisableAnimationsOf(context) == true;
     final animate = widget.dancing && !reducedMotion;
 
-    final width = widget.height * 402 / 640;
+    final width = widget.height * 249 / 360;
     final totalHeight = widget.height + widget.height * 0.05;
 
     return Semantics(
@@ -238,7 +247,7 @@ class _NekoMascotState extends State<NekoMascot>
   // ---------------------------------------------------------------------------
 
   Widget _buildStatic(NekoDecor decor) {
-    final frame = _isHappy ? _happy0 : _idleFrame;
+    final frame = _isHappy ? _reducedMotionFrame : _idleFrame;
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.bottomCenter,
@@ -277,8 +286,9 @@ class _NekoMascotState extends State<NekoMascot>
         // Determine which frame to show.
         String frame;
         if (happyActive) {
-          final idx = (t * 1400 / 175).floor() % 2;
-          frame = idx == 0 ? _happy0 : _happy1;
+          final i = (t * _reactFrameCount).floor().clamp(0, _reactFrameCount - 1);
+          frame =
+              'assets/neko/react/react_${i.toString().padLeft(2, '0')}.webp';
         } else {
           frame = _isBlinking ? _blinkFrame : _idleFrame;
         }
@@ -286,9 +296,8 @@ class _NekoMascotState extends State<NekoMascot>
         // Vertical offset.
         double yOffset;
         if (happyActive) {
-          // Two hops: -height * 0.07 * |sin(2π·t)|
-          yOffset =
-              -widget.height * 0.07 * math.sin(2 * math.pi * t).abs();
+          // No procedural hop — the video frames already include the bounce.
+          yOffset = 0.0;
         } else {
           // Idle bob: -(sin(2π·v) * 0.5 + 0.5) * height * 0.018
           yOffset =
@@ -302,7 +311,7 @@ class _NekoMascotState extends State<NekoMascot>
         double scaleX;
         if (happyActive) {
           // Pop scale: 1 → 1.06 → 1 over the first 300 ms.
-          const popEnd = 300.0 / 1400.0;
+          const popEnd = 300.0 / 3083.0;
           if (t < popEnd) {
             final popT = t / popEnd;
             final scale = popT < 0.5
@@ -319,10 +328,8 @@ class _NekoMascotState extends State<NekoMascot>
           scaleX = 2 - scaleY;
         }
 
-        // Shadow shrinks slightly as she rises.
-        final maxBounce = happyActive
-            ? widget.height * 0.07
-            : widget.height * 0.018;
+        // Shadow shrinks slightly as she rises (idle bob only).
+        final maxBounce = widget.height * 0.018;
         final shadowScale =
             1.0 - (yOffset.abs() / maxBounce) * 0.15;
         final shadowColor = decor.cocoa.withValues(alpha: 0.16);
@@ -364,7 +371,7 @@ class _NekoMascotState extends State<NekoMascot>
                   painter: _HeartsBurstPainter(
                     t: t,
                     height: widget.height,
-                    width: widget.height * 402 / 640,
+                    width: widget.height * 249 / 360,
                     accent: decor.accent,
                     lavender: decor.lavender,
                   ),

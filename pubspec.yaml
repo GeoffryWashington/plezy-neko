@@ -163,6 +163,7 @@ flutter:
     - assets/player_icons/
     - assets/rating_icons/
     - assets/neko/
+    - assets/neko/react/
   # Registered as UI font families so the Linux build, whose fontconfig may
   # lack CJK fonts, can fall back to the bundled subtitle fonts (mono_theme).
   fonts:
