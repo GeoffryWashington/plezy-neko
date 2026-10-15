@@ -3760,8 +3760,9 @@ class PlexClient
             transcodeSessionId: options.transcodeSessionId!,
           );
 
-          if (result.outcome == TranscodeDecisionOutcome.transcodeOk && result.startPath != null) {
-            final transcodeUrl = '${config.baseUrl}${result.startPath}'.withPlexToken(config.token);
+          final startPath = result.startPath;
+          if (result.outcome == TranscodeDecisionOutcome.transcodeOk && startPath != null) {
+            final transcodeUrl = '${config.baseUrl}$startPath'.withPlexToken(config.token);
             return PlaybackInitializationResult(
               availableVersions: data.availableVersions,
               videoUrl: transcodeUrl,
@@ -3802,24 +3803,43 @@ class PlexClient
         final burnUndeliverable =
             _requestsSubtitleBurn(requestedSubtitleTrack) &&
             _selectedInternalSubtitleForHls(requestedSubtitleTrack) == null;
-        if (!burnUndeliverable && result.outcome == TranscodeDecisionOutcome.transcodeOk && result.startPath != null) {
-          final transcodeUrl = '${config.baseUrl}${result.startPath}'.withPlexToken(config.token);
-          final subtitleSidecars = _buildTranscodeSidecarSubtitles(data.mediaInfo);
-          return PlaybackInitializationResult(
-            availableVersions: data.availableVersions,
-            videoUrl: transcodeUrl,
-            mediaInfo: data.mediaInfo,
-            subtitleSidecars: subtitleSidecars,
-            isOffline: false,
-            isTranscoding: true,
-            activeAudioStreamId: resolvedAudioId,
-            playMethod: 'Transcode',
-            playSessionId: options.sessionIdentifier,
-            selectedMediaIndex: data.selectedMediaIndex,
-          );
+        final startPath = result.startPath;
+        if (!burnUndeliverable && result.outcome == TranscodeDecisionOutcome.transcodeOk && startPath != null) {
+          return _videoTranscodeResult(data, startPath, options, resolvedAudioId);
         }
 
         return _transcodeFallbackResult(data, result.outcome, options, activeAudioStreamId: carriedAudioStreamId);
+      }
+
+      // Pre-flight probe: PMS answers 500/503 instead of a transcode decision
+      // when a remote client exceeds its per-stream bandwidth cap. Official
+      // clients fall back to a server transcode in that case; we do the same.
+      if (!isTrack && options.sessionIdentifier != null && options.transcodeSessionId != null) {
+        final directPlayUrl = _trackStreamUrl(data.videoUrl, options);
+        final status = directPlayUrl == null ? null : await _probeDirectPlayStatus(directPlayUrl);
+        if (status == 500 || status == 502 || status == 503 || status == 504) {
+          appLogger.w('Direct play refused by the server (HTTP $status, likely its remote-stream bandwidth limit); falling back to a 20 Mbps transcode');
+          final resolvedAudioId = carriedAudioTrack == null
+              ? _resolveAudioStreamId(options.selectedAudioStreamId, data.mediaInfo)
+              : carriedAudioStreamId;
+          final requestedSubtitleTrack = _resolveTranscodeSubtitleTrack(data.mediaInfo, options.preferredSubtitleTrack);
+          final result = await buildTranscodeStartPath(
+            ratingKey: options.metadata.id,
+            mediaIndex: data.selectedMediaIndex,
+            partIndex: data.selectedPartIndex,
+            preset: TranscodeQualityPreset.p1080_20mbps,
+            sessionIdentifier: options.sessionIdentifier!,
+            transcodeSessionId: options.transcodeSessionId!,
+            audioStreamId: resolvedAudioId,
+            selectedSubtitleTrack: requestedSubtitleTrack,
+            partId: data.mediaInfo?.partId,
+            sourceCodecRefused: sourceCodecRefused,
+          );
+          final startPath = result.startPath;
+          if (result.outcome == TranscodeDecisionOutcome.transcodeOk && startPath != null) {
+            return _videoTranscodeResult(data, startPath, options, resolvedAudioId);
+          }
+        }
       }
 
       return PlaybackInitializationResult(
@@ -3880,6 +3900,51 @@ class PlexClient
 
   MediaVersion? _selectedVersion(PlexVideoPlaybackData data) =>
       data.selectedMediaIndex < data.availableVersions.length ? data.availableVersions[data.selectedMediaIndex] : null;
+
+  /// Builds the transcode [PlaybackInitializationResult] for a successful
+  /// video transcode decision. Shared by the preset-driven branch and the
+  /// bandwidth-cap fallback in [getPlaybackInitialization].
+  PlaybackInitializationResult _videoTranscodeResult(
+    PlexVideoPlaybackData data,
+    String startPath,
+    PlaybackInitializationOptions options,
+    int? activeAudioStreamId,
+  ) {
+    final transcodeUrl = '${config.baseUrl}$startPath'.withPlexToken(config.token);
+    final subtitleSidecars = _buildTranscodeSidecarSubtitles(data.mediaInfo);
+    return PlaybackInitializationResult(
+      availableVersions: data.availableVersions,
+      videoUrl: transcodeUrl,
+      mediaInfo: data.mediaInfo,
+      subtitleSidecars: subtitleSidecars,
+      isOffline: false,
+      isTranscoding: true,
+      activeAudioStreamId: activeAudioStreamId,
+      playMethod: 'Transcode',
+      playSessionId: options.sessionIdentifier,
+      selectedMediaIndex: data.selectedMediaIndex,
+    );
+  }
+
+  /// Probes the direct-play URL with a single-byte range request to detect
+  /// server-side bandwidth-cap rejections. PMS answers HTTP 500 (or 503)
+  /// instead of a transcode decision when a remote client exceeds its
+  /// per-stream cap; official clients fall back to a server transcode in
+  /// that case. A failed probe (timeout, socket error) returns null and
+  /// must never block playback.
+  Future<int?> _probeDirectPlayStatus(String url) async {
+    final client = http.Client();
+    try {
+      final request = http.Request('GET', Uri.parse(url))
+        ..headers['Range'] = 'bytes=0-0';
+      final streamedResponse = await client.send(request).timeout(const Duration(seconds: 5));
+      return streamedResponse.statusCode;
+    } catch (_) {
+      return null;
+    } finally {
+      client.close();
+    }
+  }
 
   /// Direct-play result for a transcode decision that fell back (failed or
   /// said direct-play only), surfacing the reason so the UI can notify the

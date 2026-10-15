@@ -34,6 +34,12 @@ class AppearanceSettingsScreen extends StatelessWidget {
           title: t.settings.display,
           children: [
             _themeSelector(),
+            if (!PlatformDetector.isTV())
+              SettingSwitchTile(
+                pref: SettingsService.showNekoMascot,
+                icon: Symbols.pets_rounded,
+                title: t.neko.mascotToggle,
+              ),
             if (PlatformDetector.isAutomotive()) _displayScaleSelector(),
             if (Platform.isAndroid) _visualEffectsSelector(context),
           ],

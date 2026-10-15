@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/neko/neko_loader.dart';
+
 /// Square `CircularProgressIndicator(strokeWidth: 2)` sized to fit inside a
 /// button or status row. The default 18×18 matches the
 /// [FilledButton.icon] / [OutlinedButton.icon] icon slot; bump [size] for
@@ -15,7 +17,7 @@ class LoadingIndicatorBox extends StatelessWidget {
   /// Full-screen centered spinner sized to fill the remaining space inside a
   /// [CustomScrollView]. Replaces inline
   /// `SliverFillRemaining(child: Center(child: CircularProgressIndicator()))`.
-  static const Widget sliver = SliverFillRemaining(child: Center(child: CircularProgressIndicator()));
+  static const Widget sliver = SliverFillRemaining(child: Center(child: NekoLoader()));
 
   @override
   Widget build(BuildContext context) =>

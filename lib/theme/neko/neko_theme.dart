@@ -194,6 +194,14 @@ ThemeData _buildNekoTheme({required bool dark, required TargetPlatform platform}
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(18))),
       insetPadding: const EdgeInsets.all(16),
     ),
+    chipTheme: ChipThemeData(
+      side: BorderSide(color: outline),
+      shape: StadiumBorder(side: BorderSide(color: outline)),
+      selectedColor: accentSoft,
+      checkmarkColor: accent,
+      labelStyle: TextStyle(color: text),
+      backgroundColor: surface,
+    ),
   );
 
   return base.copyWith(

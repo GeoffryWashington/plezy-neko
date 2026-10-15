@@ -33,6 +33,15 @@ import '../widgets/dialog_action_button.dart';
 import 'auth/plex_pin_auth_flow.dart';
 import 'profile/profile_switch_screen.dart';
 import 'settings/add_jellyfin_screen.dart';
+import '../theme/neko/neko_decor.dart';
+import '../theme/neko/neko_mascot.dart';
+import '../theme/neko/neko_loader.dart';
+import '../theme/neko/paw_print.dart';
+
+/// The Neko Maid theme greets with the dancing mascot; other themes keep the app logo.
+Widget _brandMark(BuildContext context) => nekoDecor(context) != null
+    ? const NekoMascot(height: 170)
+    : Image.asset('assets/plezy.png', width: 120, height: 120);
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({
@@ -268,9 +277,10 @@ class _AuthScreenState extends State<AuthScreen> {
       canRequestFocus: false,
       onKeyEvent: (_, event) => handleBackKeyNavigation(context, event),
       child: Scaffold(
-        body: Center(
-          child: Container(
-            constraints: BoxConstraints(maxWidth: isDesktop ? 800 : 400),
+        body: PawPrintBackdrop(
+          child: Center(
+            child: Container(
+              constraints: BoxConstraints(maxWidth: isDesktop ? 800 : 400),
             padding: .fromLTRB(24, 24, 24, 24 + MediaQuery.paddingOf(context).bottom),
             child: isDesktop
                 ? Row(
@@ -281,7 +291,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           mainAxisAlignment: .center,
                           crossAxisAlignment: .center,
                           children: [
-                            Image.asset('assets/plezy.png', width: 120, height: 120),
+                            _brandMark(context),
                             const SizedBox(height: 24),
                             Text(
                               t.app.title,
@@ -310,7 +320,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       mainAxisSize: .min,
                       crossAxisAlignment: .stretch,
                       children: [
-                        Image.asset('assets/plezy.png', width: 120, height: 120),
+                        _brandMark(context),
                         const SizedBox(height: 24),
                         Text(
                           t.app.title,
@@ -322,6 +332,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       ],
                     ),
                   ),
+            ),
           ),
         ),
       ),
@@ -333,7 +344,7 @@ class _AuthScreenState extends State<AuthScreen> {
       return Column(
         mainAxisSize: .min,
         children: [
-          const Center(child: CircularProgressIndicator()),
+          const Center(child: NekoLoader()),
           const SizedBox(height: 16),
           Text(
             t.auth.waitingForAuth,

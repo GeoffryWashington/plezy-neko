@@ -33,6 +33,10 @@ import '../services/fullscreen_state_manager.dart';
 import '../theme/mono_tokens.dart';
 import '../widgets/backend_badge.dart';
 import '../i18n/strings.g.dart';
+import '../theme/neko/neko_decor.dart';
+import '../theme/neko/neko_mascot.dart';
+import '../theme/neko/lace_edge.dart';
+import 'settings_builder.dart';
 
 enum _LibraryNavSection { visible, hidden }
 
@@ -1004,6 +1008,7 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
                         child: Column(
                           children: [
                             SizedBox(height: _getTopPadding(context)),
+                            const LaceEdge(height: 8),
                             Expanded(
                               child: AnimatedPadding(
                                 padding: .symmetric(horizontal: horizontalPadding),
@@ -1103,6 +1108,16 @@ class SideNavigationRailState extends State<SideNavigationRail> with MountedSetS
                                 ),
                               ),
                             ),
+                            if (nekoDecor(context) != null)
+                              SettingValueBuilder<bool>(
+                                pref: SettingsService.showNekoMascot,
+                                builder: (context, show, _) => show
+                                    ? Padding(
+                                        padding: const EdgeInsets.only(bottom: 8),
+                                        child: Center(child: NekoMascot(height: isCollapsed ? 56 : 104)),
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
                             if (_showFullscreenToggle)
                               AnimatedPadding(
                                 padding: .fromLTRB(horizontalPadding, 0, horizontalPadding, 12),
