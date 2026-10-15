@@ -8,6 +8,15 @@ Welcome! **Plezy Neko** is a specialized, aesthetic fork of [Plezy](https://gith
 
 This fork keeps **all** the amazing upstream features of the original app but sprinkles in a cozy, cute aesthetic and a dedicated Windows desktop focus! Best of all, it has a completely separate app identity (its own window title, icon, and data folder), meaning you can safely run it right alongside the official Plezy app without any conflicts.
 
+## 📦 Download & Install (Windows 10/11, x64)
+
+Grab the latest build from the [**Releases page**](https://github.com/GeoffryWashington/plezy-neko/releases/latest):
+
+* **`plezy-neko-setup.exe`** (recommended): a one-click installer. It installs just for you (no admin prompt), adds a *Plezy Neko* desktop shortcut and Start-menu entry, and can be removed from *Settings > Apps*. It runs side by side with the official Plezy and never touches it.
+* **`plezy-neko-windows-x64-portable.7z`**: no install, just extract anywhere and run `plezy.exe`.
+
+Everything needed for playback ships inside: mpv/FFmpeg with all the common video and audio codecs (H.264, HEVC, AV1, VP9, TrueHD, DTS-HD, E-AC-3, FLAC…) and the Visual C++ runtime. Nothing else to install, nya~
+
 ## ✨ Features & Additions
 
 * **Catgirl Themes:** Introduces *Neko Maid* (pastel sakura pink and cream, the new default) and *Neko Night* (plum and sakura pink). The original Plezy themes are still available!
