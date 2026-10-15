@@ -85,6 +85,7 @@ ThemeData _buildNekoTheme({required bool dark, required TargetPlatform platform}
     platform: platform,
     useMaterial3: true,
     brightness: dark ? Brightness.dark : Brightness.light,
+    fontFamily: 'NekoRounded',
     fontFamilyFallback: platform == TargetPlatform.linux ? const ['Go Noto Current', 'Go Noto Current Hangul'] : null,
     colorScheme: ColorScheme(
       brightness: dark ? Brightness.dark : Brightness.light,
@@ -128,7 +129,7 @@ ThemeData _buildNekoTheme({required bool dark, required TargetPlatform platform}
       titleTextStyle: TextStyle(color: accent, fontSize: 18, fontWeight: .w800, letterSpacing: 0.2),
     ),
     textTheme: Typography.englishLike2021
-        .apply(bodyColor: text, displayColor: text)
+        .apply(bodyColor: text, displayColor: text, fontFamily: 'NekoRounded')
         .copyWith(
           displayLarge: const TextStyle(fontWeight: .w800, letterSpacing: 0.2),
           titleMedium: const TextStyle(fontWeight: .w800, letterSpacing: 0.2),

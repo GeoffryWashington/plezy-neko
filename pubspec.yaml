@@ -173,3 +173,13 @@ flutter:
     - family: Go Noto Current Hangul
       fonts:
         - asset: assets/go-noto-kurrent-hangul.ttf
+    - family: NekoRounded
+      fonts:
+        - asset: assets/fonts/mplus_rounded/MPLUSRounded1c-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/mplus_rounded/MPLUSRounded1c-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/mplus_rounded/MPLUSRounded1c-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/mplus_rounded/MPLUSRounded1c-ExtraBold.ttf
+          weight: 800
