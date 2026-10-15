@@ -40,6 +40,14 @@ class _NekoMascotState extends State<NekoMascot>
 
   static const String _staticFrame = 'assets/neko/mascot.png';
 
+  (double, double)? _lastPrecached;
+
+  ImageProvider _provider(String path, BuildContext context) {
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final h = (widget.height * dpr).round().clamp(1, 480);
+    return ResizeImage(AssetImage(path), height: h, allowUpscaling: false);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -52,10 +60,26 @@ class _NekoMascotState extends State<NekoMascot>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _maybePrecache();
+  }
+
+  void _maybePrecache() {
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final key = (widget.height, dpr);
+    if (_lastPrecached == key) return;
+    _lastPrecached = key;
     for (final path in _frames) {
-      precacheImage(AssetImage(path), context);
+      precacheImage(_provider(path, context), context);
     }
-    precacheImage(AssetImage(_staticFrame), context);
+    precacheImage(_provider(_staticFrame, context), context);
+  }
+
+  @override
+  void didUpdateWidget(covariant NekoMascot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.height != widget.height) {
+      _maybePrecache();
+    }
   }
 
   @override
@@ -111,8 +135,8 @@ class _NekoMascotState extends State<NekoMascot>
             ),
           ),
         ),
-        Image.asset(
-          _staticFrame,
+        Image(
+          image: _provider(_staticFrame, context),
           height: widget.height,
           gaplessPlayback: true,
           filterQuality: FilterQuality.medium,
@@ -175,8 +199,8 @@ class _NekoMascotState extends State<NekoMascot>
                   scaleX: scaleX,
                   scaleY: scaleY,
                   alignment: Alignment.bottomCenter,
-                  child: Image.asset(
-                    framePath,
+                  child: Image(
+                    image: _provider(framePath, context),
                     height: widget.height,
                     gaplessPlayback: true,
                     filterQuality: FilterQuality.medium,
