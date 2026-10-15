@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'paw_print.dart';
-
-/// A slider thumb that renders a soft white circle with a paw print on top.
+/// A slider thumb that renders a paw icon glyph.
 ///
 /// Used by the Neko Maid theme to replace the default timeline handle so the
 /// scrubber feels on-brand without distracting from the picture.
@@ -10,7 +8,7 @@ class PawThumbShape extends SliderComponentShape {
   final Color color;
   final double size;
 
-  const PawThumbShape({required this.color, this.size = 18});
+  const PawThumbShape({required this.color, this.size = 24});
 
   @override
   Size getPreferredSize(bool isEnabled, bool isDiscrete) => Size.square(size);
@@ -31,16 +29,32 @@ class PawThumbShape extends SliderComponentShape {
     required Size sizeWithOverflow,
   }) {
     final canvas = context.canvas;
-    final radius = size * 0.55;
 
-    // Soft drop-shadow behind the circle.
-    final circlePath = Path()..addOval(Rect.fromCircle(center: center, radius: radius));
-    canvas.drawShadow(circlePath, Colors.black, 2, false);
+    void paintGlyph(double fontSize, Color glyphColor, Offset offset) {
+      final painter = TextPainter(
+        text: TextSpan(
+          text: String.fromCharCode(Icons.pets.codePoint),
+          style: TextStyle(
+            fontFamily: Icons.pets.fontFamily,
+            package: Icons.pets.fontPackage,
+            fontSize: fontSize,
+            color: glyphColor,
+          ),
+        ),
+        textDirection: textDirection,
+      )..layout();
+      final topLeft =
+          center - Offset(painter.width / 2, painter.height / 2) + offset;
+      painter.paint(canvas, topLeft);
+    }
 
-    // White circle body.
-    canvas.drawCircle(center, radius, Paint()..color = Colors.white);
+    // Soft shadow behind the glyph.
+    paintGlyph(size, Colors.black.withValues(alpha: 0.35), const Offset(0, 1));
 
-    // Paw print centred on the circle.
-    paintPawPrint(canvas, center, size * 0.8, Paint()..color = color);
+    // White outline pass (full size – acts as the border).
+    paintGlyph(size, Colors.white, Offset.zero);
+
+    // Colored fill pass (slightly smaller so the white shows as a ~2 px rim).
+    paintGlyph(size - 4, color, Offset.zero);
   }
 }

@@ -388,7 +388,7 @@ class _TimelineSliderState extends State<TimelineSlider> {
                           thumbSize: WidgetStatePropertyAll(
                             (!isKeyboardMode || _isFocused)
                                 ? (decor != null && !showFocus
-                                    ? const Size(18, 18)
+                                    ? const Size(24, 24)
                                     : const Size(4, 20))
                                 : Size.zero,
                           ),
