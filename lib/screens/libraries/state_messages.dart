@@ -4,6 +4,8 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../../focus/focusable_button.dart';
 import '../../i18n/strings.g.dart';
+import '../../theme/neko/neko_decor.dart';
+import '../../theme/neko/neko_empty.dart';
 
 /// Base widget for displaying state messages (empty, error, etc.)
 /// Provides a consistent UI pattern for showing icons, messages, and actions
@@ -37,6 +39,9 @@ class StateMessageWidget extends StatelessWidget {
   final VoidCallback? onActionNavigateLeft;
   final VoidCallback? onActionBack;
 
+  /// Optional custom art widget (e.g. NekoEmpty) shown in place of [icon].
+  final Widget? art;
+
   /// Whether the action button should request focus when it appears.
   final bool actionAutofocus;
 
@@ -59,6 +64,7 @@ class StateMessageWidget extends StatelessWidget {
     this.onActionNavigateLeft,
     this.onActionBack,
     this.actionIcon,
+    this.art,
     this.actionAutofocus = false,
     this.actionUseBackgroundFocus = false,
   });
@@ -72,7 +78,10 @@ class StateMessageWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: .center,
           children: [
-            if (icon != null) ...[
+            if (art != null) ...[
+              art!,
+              const SizedBox(height: 16),
+            ] else if (icon != null) ...[
               AppIcon(
                 icon,
                 fill: 1,
@@ -167,6 +176,9 @@ class EmptyStateWidget extends StatelessWidget {
       subtitle: subtitle,
       icon: icon,
       iconSize: iconSize,
+      art: nekoDecor(context) != null
+          ? NekoEmpty(showMessage: false, size: iconSize * 1.6)
+          : null,
       onAction: onAction,
       actionLabel: actionLabel,
       actionIcon: actionIcon ?? Symbols.add_rounded,

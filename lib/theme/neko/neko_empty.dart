@@ -10,16 +10,35 @@ import 'neko_decor.dart';
 class NekoEmpty extends StatelessWidget {
   final String? message;
   final double size;
+  final bool showMessage;
 
   const NekoEmpty({
     super.key,
     this.message,
     this.size = 96,
+    this.showMessage = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final decor = nekoDecor(context);
+
+    if (!showMessage) {
+      if (decor == null) return const SizedBox.shrink();
+      return SizedBox(
+        width: size,
+        height: size,
+        child: CustomPaint(
+          painter: _SleepyCatPainter(
+            cream: decor.cream,
+            cocoa: decor.cocoa,
+            accent: decor.accent,
+            accentSoft: decor.accentSoft,
+          ),
+        ),
+      );
+    }
+
     final text = message ?? t.neko.empty;
 
     if (decor == null) {
