@@ -32,6 +32,8 @@ import 'widgets/video_timeline_bar.dart';
 import 'widgets/volume_control.dart';
 import 'widgets/track_chapter_controls.dart';
 import 'video_control_button.dart';
+import '../../theme/neko/bell_icon.dart';
+import '../../theme/neko/neko_decor.dart';
 
 /// Desktop-specific video controls layout with top bar and bottom controls
 class DesktopVideoControls extends StatefulWidget {
@@ -816,13 +818,24 @@ class DesktopVideoControlsState extends State<DesktopVideoControls> {
                   child: PlayPauseStreamBuilder(
                     player: widget.player,
                     builder: (context, isPlaying) {
-                      return _buildFocusableButton(
-                        focusNode: _playPauseFocusNode,
-                        index: 3,
-                        icon: isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded,
-                        iconSize: 32,
-                        onPressed: _canControl ? widget.onPlayPause : null,
-                        semanticLabel: isPlaying ? t.videoControls.pauseButton : t.videoControls.playButton,
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          _buildFocusableButton(
+                            focusNode: _playPauseFocusNode,
+                            index: 3,
+                            icon: isPlaying ? Symbols.pause_rounded : Symbols.play_arrow_rounded,
+                            iconSize: 32,
+                            onPressed: _canControl ? widget.onPlayPause : null,
+                            semanticLabel: isPlaying ? t.videoControls.pauseButton : t.videoControls.playButton,
+                          ),
+                          if (nekoDecor(context) != null)
+                            const Positioned(
+                              right: 2,
+                              top: 2,
+                              child: IgnorePointer(child: BellIcon(size: 12)),
+                            ),
+                        ],
                       );
                     },
                   ),

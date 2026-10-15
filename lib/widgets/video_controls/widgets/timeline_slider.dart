@@ -11,6 +11,8 @@ import '../helpers/eager_horizontal_drag_recognizer.dart';
 import '../helpers/render_geometry.dart';
 import '../painters/buffer_range_painter.dart';
 import 'player_focus_disc.dart';
+import '../../../theme/neko/neko_decor.dart';
+import '../../../theme/neko/paw_thumb_shape.dart';
 
 /// Timeline slider with chapter markers for video playback
 ///
@@ -365,29 +367,42 @@ class _TimelineSliderState extends State<TimelineSlider> {
               onDecrease: widget.enabled && durationMs > 0 ? () => _semanticSeekBy(const Duration(seconds: -10)) : null,
               child: ExcludeSemantics(
                 child: IgnorePointer(
-                  child: SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 8,
-                      trackGap: 0,
-                      padding: .zero,
-                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 0),
-                      tickMarkShape: SliderTickMarkShape.noTickMark,
-                      // D-pad focus swaps the 4x20 handle for a shadowed knob
-                      // (#2383); in pointer mode the handle always shows, and
-                      // an unfocused timeline in D-pad mode shows none.
-                      thumbShape: showFocus ? const _FocusKnobThumbShape() : null,
-                      thumbSize: WidgetStatePropertyAll(
-                        (!isKeyboardMode || _isFocused) ? const Size(4, 20) : Size.zero,
-                      ),
-                    ),
-                    child: Slider(
-                      value: displayValue,
-                      min: 0.0,
-                      max: max,
-                      onChanged: _noopSliderChanged,
-                      activeColor: Colors.white,
-                      inactiveColor: Colors.transparent,
-                    ),
+                  child: Builder(
+                    builder: (context) {
+                      final decor = nekoDecor(context);
+                      return SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          trackHeight: 8,
+                          trackGap: 0,
+                          padding: .zero,
+                          overlayShape: const RoundSliderOverlayShape(overlayRadius: 0),
+                          tickMarkShape: SliderTickMarkShape.noTickMark,
+                          // D-pad focus swaps the 4x20 handle for a shadowed knob
+                          // (#2383); in pointer mode the handle always shows, and
+                          // an unfocused timeline in D-pad mode shows none.
+                          thumbShape: showFocus
+                              ? const _FocusKnobThumbShape()
+                              : (decor != null
+                                  ? PawThumbShape(color: decor.accent)
+                                  : null),
+                          thumbSize: WidgetStatePropertyAll(
+                            (!isKeyboardMode || _isFocused)
+                                ? (decor != null && !showFocus
+                                    ? const Size(18, 18)
+                                    : const Size(4, 20))
+                                : Size.zero,
+                          ),
+                        ),
+                        child: Slider(
+                          value: displayValue,
+                          min: 0.0,
+                          max: max,
+                          onChanged: _noopSliderChanged,
+                          activeColor: decor?.accent ?? Colors.white,
+                          inactiveColor: Colors.transparent,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
