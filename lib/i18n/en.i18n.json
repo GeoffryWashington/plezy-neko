@@ -123,7 +123,13 @@
     "error": "Oh no! Something went wrong, nya…",
     "mascotToggle": "Show dancing mascot",
     "themeToggle": "Catgirl theme",
-    "themeToggleSubtitle": "Neko Maid look with the dancing mascot"
+    "themeToggleSubtitle": "Neko Maid look with the dancing mascot",
+    "updateAvailable": "Update available",
+    "updateTitle": "Plezy Neko ${version} is available",
+    "updateNow": "Update",
+    "later": "Later",
+    "downloading": "Downloading update…",
+    "updateFailed": "Update failed: ${error}"
   },
   "settings": {
     "title": "Settings",

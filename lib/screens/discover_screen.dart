@@ -66,6 +66,8 @@ import '../watch_together/watch_together.dart';
 import '../providers/companion_remote_provider.dart';
 import '../widgets/companion_remote/remote_session_dialog.dart';
 import 'companion_remote/mobile_remote_screen.dart';
+import '../services/neko_update_service.dart';
+import '../widgets/neko_update_dialog.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -337,9 +339,15 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     _discover = context.read<DiscoverProvider>();
     _seenLoadGeneration = _discover.loadGeneration;
     _discover.addListener(_onDiscoverChanged);
+    NekoUpdateService.instance.addListener(_onNekoUpdateChanged);
     _updateHubKeys();
     unawaited(_discover.load());
+    unawaited(NekoUpdateService.instance.checkForUpdates());
     _startAutoScroll();
+  }
+
+  void _onNekoUpdateChanged() {
+    if (mounted) setState(() {});
   }
 
   /// Mirror provider changes into this state's UI concerns: rebuild, apply
@@ -450,6 +458,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   @override
   void dispose() {
     _discover.removeListener(_onDiscoverChanged);
+    NekoUpdateService.instance.removeListener(_onNekoUpdateChanged);
     WidgetsBinding.instance.removeObserver(this);
     _autoScrollTimer?.cancel();
     _indicatorTimer?.cancel();
@@ -820,6 +829,13 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                 onNavigateLeft: _navigateToSidebar,
                 onNavigateDown: _focusContentFromAppBar,
                 actions: [
+                  if (NekoUpdateService.instance.available != null)
+                    FocusableAction(
+                      icon: Symbols.system_update_alt_rounded,
+                      iconColor: foregroundColor,
+                      tooltip: t.neko.updateAvailable,
+                      onPressed: () => NekoUpdateDialog.show(context, NekoUpdateService.instance.available!),
+                    ),
                   FocusableAction(icon: Symbols.refresh_rounded, iconColor: foregroundColor, onPressed: manualRefresh),
                   // Watch Together
                   FocusableAction(

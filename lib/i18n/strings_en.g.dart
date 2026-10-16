@@ -405,6 +405,24 @@ class Translations$neko$en {
 
 	/// en: 'Neko Maid look with the dancing mascot'
 	String get themeToggleSubtitle => 'Neko Maid look with the dancing mascot';
+
+	/// en: 'Update available'
+	String get updateAvailable => 'Update available';
+
+	/// en: 'Plezy Neko ${version} is available'
+	String updateTitle({required Object version}) => 'Plezy Neko ${version} is available';
+
+	/// en: 'Update'
+	String get updateNow => 'Update';
+
+	/// en: 'Later'
+	String get later => 'Later';
+
+	/// en: 'Downloading update…'
+	String get downloading => 'Downloading update…';
+
+	/// en: 'Update failed: ${error}'
+	String updateFailed({required Object error}) => 'Update failed: ${error}';
 }
 
 // Path: settings
@@ -7625,6 +7643,12 @@ extension on Translations {
 			'neko.mascotToggle' => 'Show dancing mascot',
 			'neko.themeToggle' => 'Catgirl theme',
 			'neko.themeToggleSubtitle' => 'Neko Maid look with the dancing mascot',
+			'neko.updateAvailable' => 'Update available',
+			'neko.updateTitle' => ({required Object version}) => 'Plezy Neko ${version} is available',
+			'neko.updateNow' => 'Update',
+			'neko.later' => 'Later',
+			'neko.downloading' => 'Downloading update…',
+			'neko.updateFailed' => ({required Object error}) => 'Update failed: ${error}',
 			'settings.title' => 'Settings',
 			'settings.supportDeveloper' => 'Support Plezy',
 			'settings.supportDeveloperDescription' => 'Donate via Liberapay to fund development',
@@ -8021,14 +8045,14 @@ extension on Translations {
 			'fileInfo.pixelAspectRatio' => 'Pixel Aspect Ratio',
 			'fileInfo.profile' => 'Profile',
 			'fileInfo.level' => 'Level',
+			_ => null,
+		} ?? switch (path) {
 			'fileInfo.bitDepth' => 'Bit Depth',
 			'fileInfo.pixelFormat' => 'Pixel Format',
 			'fileInfo.colorSpace' => 'Color Space',
 			'fileInfo.colorRange' => 'Color Range',
 			'fileInfo.colorPrimaries' => 'Color Primaries',
 			'fileInfo.colorTransfer' => 'Color Transfer',
-			_ => null,
-		} ?? switch (path) {
 			'fileInfo.chromaSubsampling' => 'Chroma Subsampling',
 			'fileInfo.chromaLocation' => 'Chroma Location',
 			'fileInfo.scanType' => 'Scan Type',
@@ -8535,14 +8559,14 @@ extension on Translations {
 			'discover.minutesLeft' => ({required Object minutes}) => '${minutes} min left',
 			'discover.moreLikeThis' => 'More Like This',
 			'discover.titleCount' => ({required num n}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(n, one: '${n} title', other: '${n} titles', ), 
+			_ => null,
+		} ?? switch (path) {
 			'discover.person.born' => 'Born',
 			'discover.person.died' => 'Died',
 			'discover.person.birthplace' => 'Birthplace',
 			'discover.person.dateWithAge' => ({required Object date, required Object age}) => '${date} (age ${age})',
 			'discover.person.dateWithAgeAtDeath' => ({required Object date, required Object age}) => '${date} (aged ${age})',
 			'errors.searchFailed' => ({required Object error}) => 'Search failed: ${error}',
-			_ => null,
-		} ?? switch (path) {
 			'errors.searchUnavailable' => 'Search could not reach any media server.',
 			'errors.connectionTimeout' => ({required Object context}) => 'Connection timeout while loading ${context}',
 			'errors.connectionFailed' => 'Unable to connect to media server',
@@ -9049,14 +9073,14 @@ extension on Translations {
 			'watchTogether.hostOnly' => 'Host Only',
 			'watchTogether.anyone' => 'Anyone',
 			'watchTogether.hostingSession' => 'Hosting Session',
+			_ => null,
+		} ?? switch (path) {
 			'watchTogether.inSession' => 'In Session',
 			'watchTogether.sessionCode' => 'Session Code',
 			'watchTogether.openSessionControls' => 'Open Watch Together session controls',
 			'watchTogether.copySessionCode' => 'Copy session code',
 			'watchTogether.hostControlsPlayback' => 'Host controls playback',
 			'watchTogether.anyoneCanControl' => 'Anyone can control playback',
-			_ => null,
-		} ?? switch (path) {
 			'watchTogether.hostControls' => 'Host controls',
 			'watchTogether.anyoneControls' => 'Anyone controls',
 			'watchTogether.participants' => 'Participants',
@@ -9563,14 +9587,14 @@ extension on Translations {
 			'seerr.allSeasons' => 'All seasons',
 			'seerr.advancedOptions' => 'Advanced',
 			'seerr.destinationServer' => 'Destination server',
+			_ => null,
+		} ?? switch (path) {
 			'seerr.qualityProfile' => 'Quality profile',
 			'seerr.rootFolder' => 'Root folder',
 			'seerr.languageProfile' => 'Language profile',
 			'seerr.tags' => 'Tags',
 			'seerr.noTags' => 'No tags',
 			'seerr.defaultOption' => ({required Object name}) => '${name} (Default)',
-			_ => null,
-		} ?? switch (path) {
 			'seerr.animeNote' => 'This series is an anime.',
 			'seerr.requestSubmitted' => 'Request submitted',
 			'seerr.requestFailed' => ({required Object error}) => 'Request failed: ${error}',
