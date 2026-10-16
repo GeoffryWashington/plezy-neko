@@ -19,6 +19,9 @@ class ShaderService {
   /// Set when the last preset application failed (e.g. VSR unavailable).
   String? lastError;
 
+  /// Guards against re-entrant [captureComparison] calls.
+  bool _capturing = false;
+
   /// The preset in mpv's chain. Differs from [_requestedPreset] only while
   /// NVScaler is auto-skipped on HDR content.
   ShaderPreset _currentPreset = ShaderPreset.none;
@@ -273,47 +276,32 @@ class ShaderService {
   /// Capture a before/after comparison screenshot of the current frame.
   /// Returns the file paths, or null on failure.
   Future<({String before, String after})?> captureComparison(String dir) async {
+    if (_capturing) return null;
     final wasPaused = (await _player.getProperty('pause')) == 'yes';
-    await _player.setProperty('pause', 'yes');
-
+    _capturing = true;
     try {
+      await _player.setProperty('pause', 'yes');
+
       final stamp = DateTime.now().millisecondsSinceEpoch;
       final after = '$dir/neko_cmp_after_$stamp.png';
       final before = '$dir/neko_cmp_before_$stamp.png';
 
       // Screenshot with enhancements on.
       await _player.command(['screenshot-to-file', after, 'window']);
+      await _waitForFile(after);
 
-      // Save current picture properties.
-      final brightness = await _player.getProperty('brightness');
-      final contrast = await _player.getProperty('contrast');
-      final saturation = await _player.getProperty('saturation');
-      final gamma = await _player.getProperty('gamma');
-      final hue = await _player.getProperty('hue');
-
-      // Turn enhancements off.
+      // Disable enhancements.
       await _player.command(['change-list', 'glsl-shaders', 'clr', '']);
       await _player.setProperty('brightness', '0');
       await _player.setProperty('contrast', '0');
       await _player.setProperty('saturation', '0');
       await _player.setProperty('gamma', '0');
       await _player.setProperty('hue', '0');
-      await Future.delayed(const Duration(milliseconds: 180));
+      await Future.delayed(const Duration(milliseconds: 150));
 
       // Screenshot without enhancements.
       await _player.command(['screenshot-to-file', before, 'window']);
-
-      // Restore picture properties and shader chain.
-      await _player.setProperty('brightness', brightness ?? '0');
-      await _player.setProperty('contrast', contrast ?? '0');
-      await _player.setProperty('saturation', saturation ?? '0');
-      await _player.setProperty('gamma', gamma ?? '0');
-      await _player.setProperty('hue', hue ?? '0');
-      await _applyChain(_currentPreset);
-
-      if (!wasPaused) {
-        await _player.setProperty('pause', 'no');
-      }
+      await _waitForFile(before);
 
       // Best-effort cleanup of old comparison files.
       await _cleanupComparisonFiles(dir);
@@ -321,14 +309,33 @@ class ShaderService {
       return (before: before, after: after);
     } catch (e, st) {
       appLogger.w('ShaderService: captureComparison failed', error: e, stackTrace: st);
+      return null;
+    } finally {
+      final adj = SettingsService.instance.read(SettingsService.pictureAdjustments);
+      try {
+        await adj.applyTo(_player);
+      } catch (_) {}
+      _sharpness = adj.sharpness;
+      _sharpenPaths = const [];
       try {
         await _applyChain(_currentPreset);
-        if (!wasPaused) {
-          await _player.setProperty('pause', 'no');
-        }
       } catch (_) {}
-      return null;
+      if (!wasPaused) {
+        try {
+          await _player.setProperty('pause', 'no');
+        } catch (_) {}
+      }
+      _capturing = false;
     }
+  }
+
+  Future<void> _waitForFile(String path) async {
+    for (var i = 0; i < 30; i++) {
+      final f = File(path);
+      if (await f.exists() && await f.length() > 0) return;
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+    throw StateError('screenshot not written: $path');
   }
 
   /// Delete comparison files older than the newest 4.

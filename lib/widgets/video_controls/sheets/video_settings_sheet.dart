@@ -66,6 +66,16 @@ enum _SettingsView {
   audioChannelLimit,
 }
 
+/// Clips to the left [fraction] of the child, for the before/after compare.
+class _SplitClipper extends CustomClipper<Rect> {
+  final double fraction;
+  const _SplitClipper(this.fraction);
+  @override
+  Rect getClip(Size size) => Rect.fromLTWH(0, 0, size.width * fraction, size.height);
+  @override
+  bool shouldReclip(_SplitClipper oldClipper) => oldClipper.fraction != fraction;
+}
+
 class _SettingsMenuItem extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -1691,18 +1701,19 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Image.file(File(_cmpAfter!), fit: BoxFit.cover, gaplessPlayback: true),
+                        Image.file(
+                          File(_cmpAfter!),
+                          fit: BoxFit.cover,
+                          gaplessPlayback: true,
+                          errorBuilder: (_, _, _) => const ColoredBox(color: Colors.black26),
+                        ),
                         ClipRect(
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            widthFactor: _cmpSplit,
-                            child: Image.file(
-                              File(_cmpBefore!),
-                              fit: BoxFit.cover,
-                              gaplessPlayback: true,
-                              width: c.maxWidth,
-                              height: c.maxHeight,
-                            ),
+                          clipper: _SplitClipper(_cmpSplit),
+                          child: Image.file(
+                            File(_cmpBefore!),
+                            fit: BoxFit.cover,
+                            gaplessPlayback: true,
+                            errorBuilder: (_, _, _) => const ColoredBox(color: Colors.black26),
                           ),
                         ),
                         Positioned(
