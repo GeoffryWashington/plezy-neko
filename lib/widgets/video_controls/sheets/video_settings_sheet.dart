@@ -1512,7 +1512,8 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
             ),
           );
 
-          // f) Five slider rows
+          // f) Six slider rows
+          children.add(_buildPictureSliderRow(context, t.shaders.sharpness, _picture!.sharpness, (v) => _updatePictureField('sharpness', v), min: 0, divisions: 20));
           children.add(_buildPictureSliderRow(context, t.shaders.brightness, _picture!.brightness, (v) => _updatePictureField('brightness', v)));
           children.add(_buildPictureSliderRow(context, t.shaders.contrast, _picture!.contrast, (v) => _updatePictureField('contrast', v)));
           children.add(_buildPictureSliderRow(context, t.shaders.saturation, _picture!.saturation, (v) => _updatePictureField('saturation', v)));
@@ -1539,7 +1540,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
         _ => type.name,
       };
 
-  Widget _buildPictureSliderRow(BuildContext context, String label, int value, ValueChanged<int> onChanged) {
+  Widget _buildPictureSliderRow(BuildContext context, String label, int value, ValueChanged<int> onChanged, {double min = -100, int divisions = 40}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -1554,10 +1555,11 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
           ),
           FocusableSlider(
             value: value.toDouble(),
-            min: -100,
+            min: min,
             max: 100,
-            divisions: 40,
+            divisions: divisions,
             onChanged: (x) => onChanged(x.round()),
+            onChangeEnd: (_) => _scheduleCompare(),
           ),
         ],
       ),
@@ -1581,6 +1583,9 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
           break;
         case 'hue':
           _picture = _picture!.copyWith(hue: value);
+          break;
+        case 'sharpness':
+          _picture = _picture!.copyWith(sharpness: value);
           break;
       }
     });
