@@ -1372,7 +1372,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
     }
 
     // Lazy-init picture adjustments
-    _picture ??= PictureAdjustments.fromJson(SettingsService.instance.read(SettingsService.pictureAdjustments));
+    _picture ??= SettingsService.instance.read(SettingsService.pictureAdjustments);
 
     // First-time compare capture
     if (!_cmpRequested) {
