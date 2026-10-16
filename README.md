@@ -25,6 +25,11 @@ Everything needed for playback ships inside: mpv/FFmpeg with all the common vide
 * **Cozy UI Touches:** Enjoy a paw-print wallpaper on the sign-in screen, delicate lace trim, a hopping-paws "Nya~ loading..." loader, and a sleepy cat illustration on empty screens.
 * **Rounded Typography:** In the Neko themes, app text is rendered in the soft and friendly *M PLUS Rounded 1c* font.
 * **Themed Video Player:** While using the Neko themes, the player features a pink seek bar with a paw-print handle, a little bell icon for play/pause, and a paw loader!
+* **✨ Enhance (live picture tuning):** Click the sparkle button on the player bar to sharpen or upscale the picture while you watch. It's off by default, so playback stays as light as possible.
+  * **Method:** NVIDIA Image Scaling, AMD FSR 1.0, AMD CAS, ArtCNN, Anime4K or your own GLSL shaders. On NVIDIA RTX cards you also get **RTX Video Super Resolution**.
+  * **Picture sliders:** Sharpness, brightness, contrast, saturation, gamma and hue, remembered between sessions.
+  * **Before / after preview:** A side-by-side preview with a draggable divider, so you can see exactly what each setting does.
+* **One-Click Updates:** When a new release is out, a small update icon appears in the home screen's top bar. Click it, hit *Update*, and Plezy Neko downloads the new version, installs it and restarts itself.
 * **Plex Playback Fix:** If a Plex server refuses direct play with an HTTP 5xx error (because the stream exceeds its remote bandwidth limit), Plezy Neko will automatically probe and fall back to a 20 Mbps server transcode—just like the official Plex apps do!
   * *Tip for Server Owners:* List your home network in Plex `Settings > Network > LAN Networks` so your local devices aren't accidentally treated as remote!
 
@@ -55,6 +60,7 @@ Your finished build will be ready at: `build/windows/x64/runner/Release/plezy.ex
 ## 🎨 Art & Fonts
 * **Mascot & Icon:** The chibi catgirl-maid and app icon are original characters/assets created for this fork (generated with Google Gemini). They do not belong to any existing franchise!
 * **Font:** The app uses *M PLUS Rounded 1c*, licensed under the SIL Open Font License (see `assets/fonts/mplus_rounded/OFL.txt`).
+* **Enhance shaders:** AMD FidelityFX FSR 1.0 and CAS (© Advanced Micro Devices, MIT license) via the mpv ports by agyild; NVIDIA Image Scaling, ArtCNN and Anime4K ship with upstream Plezy.
 
 ## 📜 Credits & License
 Plezy Neko is licensed under **GPL-3.0**, matching the upstream repository.
