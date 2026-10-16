@@ -403,6 +403,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
   double _cmpSplit = 0.5;
   Timer? _cmpDebounce;
   bool _cmpRequested = false;
+  bool _cmpResumeOnLeave = false;
 
   TrackControlsState get _state => widget.trackControlsState;
 
@@ -447,6 +448,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
     _hdrSupportLifecycle?.dispose();
     _hdrOutputChanged?.cancel();
     _cmpDebounce?.cancel();
+    _unfreezeAfterCompare();
     super.dispose();
   }
 
@@ -597,9 +599,14 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
   }
 
   void _navigateTo(_SettingsView view) {
+    final oldView = _currentView;
     setState(() {
       _currentView = view;
     });
+    if (oldView == _SettingsView.shader && view != _SettingsView.shader) {
+      _unfreezeAfterCompare();
+      _cmpRequested = false;
+    }
     OverlaySheetController.maybeOf(context)?.refocus();
   }
 
@@ -1370,6 +1377,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
     // First-time compare capture
     if (!_cmpRequested) {
       _cmpRequested = true;
+      unawaited(_freezeForCompare());
       _scheduleCompare(const Duration(milliseconds: 250));
     }
 
@@ -1632,9 +1640,26 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
     _scheduleCompare();
   }
 
-  void _scheduleCompare([Duration delay = const Duration(milliseconds: 600)]) {
+  void _scheduleCompare([Duration delay = const Duration(milliseconds: 250)]) {
     _cmpDebounce?.cancel();
     _cmpDebounce = Timer(delay, _refreshCompare);
+  }
+
+  /// Pauses playback while the Enhance view is open so the before/after
+  /// comparison stays on the same frame.
+  Future<void> _freezeForCompare() async {
+    final p = widget.player;
+    final paused = (await p.getProperty('pause')) == 'yes';
+    _cmpResumeOnLeave = !paused;
+    if (!paused) await p.setProperty('pause', 'yes');
+  }
+
+  /// Resumes playback if we paused it for the compare view.
+  void _unfreezeAfterCompare() {
+    if (_cmpResumeOnLeave) {
+      _cmpResumeOnLeave = false;
+      widget.player.setProperty('pause', 'no');
+    }
   }
 
   Future<void> _refreshCompare() async {

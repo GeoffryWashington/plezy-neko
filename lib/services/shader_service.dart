@@ -22,6 +22,11 @@ class ShaderService {
   /// Guards against re-entrant [captureComparison] calls.
   bool _capturing = false;
 
+  /// Cached before-image so repeated captures at the same frame skip the
+  /// expensive disable-enhancements round-trip.
+  String? _lastBeforePath;
+  String? _lastBeforePos;
+
   /// The preset in mpv's chain. Differs from [_requestedPreset] only while
   /// NVScaler is auto-skipped on HDR content.
   ShaderPreset _currentPreset = ShaderPreset.none;
@@ -279,29 +284,54 @@ class ShaderService {
     if (_capturing) return null;
     final wasPaused = (await _player.getProperty('pause')) == 'yes';
     _capturing = true;
+    String? prevFormat;
+    var touchedState = false;
     try {
       await _player.setProperty('pause', 'yes');
 
+      // Switch to JPEG for faster screenshots (~43 ms vs ~260 ms at 1080p).
+      prevFormat = await _player.getProperty('screenshot-format');
+      await _player.setProperty('screenshot-format', 'jpg');
+      await _player.setProperty('screenshot-jpeg-quality', '90');
+
+      final pos = await _player.getProperty('time-pos');
       final stamp = DateTime.now().millisecondsSinceEpoch;
-      final after = '$dir/neko_cmp_after_$stamp.png';
-      final before = '$dir/neko_cmp_before_$stamp.png';
+      final after = '$dir/neko_cmp_after_$stamp.jpg';
+
+      // Reuse the cached before-image when the frame hasn't changed.
+      if (wasPaused &&
+          pos != null &&
+          pos == _lastBeforePos &&
+          _lastBeforePath != null &&
+          await File(_lastBeforePath!).exists()) {
+        await _player.command(['screenshot-to-file', after, 'window']);
+        await _waitForFile(after);
+        await _cleanupComparisonFiles(dir);
+        return (before: _lastBeforePath!, after: after);
+      }
+
+      final before = '$dir/neko_cmp_before_$stamp.jpg';
 
       // Screenshot with enhancements on.
       await _player.command(['screenshot-to-file', after, 'window']);
       await _waitForFile(after);
 
       // Disable enhancements.
+      touchedState = true;
       await _player.command(['change-list', 'glsl-shaders', 'clr', '']);
       await _player.setProperty('brightness', '0');
       await _player.setProperty('contrast', '0');
       await _player.setProperty('saturation', '0');
       await _player.setProperty('gamma', '0');
       await _player.setProperty('hue', '0');
-      await Future.delayed(const Duration(milliseconds: 150));
+      await Future.delayed(const Duration(milliseconds: 60));
 
       // Screenshot without enhancements.
       await _player.command(['screenshot-to-file', before, 'window']);
       await _waitForFile(before);
+
+      _lastBeforePath = before;
+      _lastBeforePos = pos;
 
       // Best-effort cleanup of old comparison files.
       await _cleanupComparisonFiles(dir);
@@ -311,18 +341,25 @@ class ShaderService {
       appLogger.w('ShaderService: captureComparison failed', error: e, stackTrace: st);
       return null;
     } finally {
-      final adj = SettingsService.instance.read(SettingsService.pictureAdjustments);
-      try {
-        await adj.applyTo(_player);
-      } catch (_) {}
-      _sharpness = adj.sharpness;
-      _sharpenPaths = const [];
-      try {
-        await _applyChain(_currentPreset);
-      } catch (_) {}
+      if (touchedState) {
+        final adj = SettingsService.instance.read(SettingsService.pictureAdjustments);
+        try {
+          await adj.applyTo(_player);
+        } catch (_) {}
+        _sharpness = adj.sharpness;
+        _sharpenPaths = const [];
+        try {
+          await _applyChain(_currentPreset);
+        } catch (_) {}
+      }
       if (!wasPaused) {
         try {
           await _player.setProperty('pause', 'no');
+        } catch (_) {}
+      }
+      if (prevFormat != null && prevFormat.isNotEmpty) {
+        try {
+          await _player.setProperty('screenshot-format', prevFormat);
         } catch (_) {}
       }
       _capturing = false;
@@ -338,7 +375,7 @@ class ShaderService {
     throw StateError('screenshot not written: $path');
   }
 
-  /// Delete comparison files older than the newest 4.
+  /// Delete comparison files older than the newest 6.
   Future<void> _cleanupComparisonFiles(String dir) async {
     try {
       final directory = Directory(dir);
@@ -346,13 +383,13 @@ class ShaderService {
       final entries = await directory.list().toList();
       final files = <(File, DateTime)>[];
       for (final e in entries) {
-        if (e is File && e.path.contains('neko_cmp_')) {
+        if (e is File && e.path.contains('neko_cmp_') && e.path != _lastBeforePath) {
           files.add((e, await e.lastModified()));
         }
       }
-      if (files.length <= 4) return;
+      if (files.length <= 6) return;
       files.sort((a, b) => b.$2.compareTo(a.$2));
-      for (final (f, _) in files.skip(4)) {
+      for (final (f, _) in files.skip(6)) {
         try {
           await f.delete();
         } catch (_) {}
