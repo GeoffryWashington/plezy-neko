@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../i18n/strings.g.dart';
 import '../../../media/library_query.dart';
 import '../../../media/media_filter.dart';
@@ -5,8 +7,10 @@ import '../../../media/media_filter.dart';
 /// Display names for filter values, keyed by server + library + field + value.
 ///
 /// Plex value ids are opaque (`genre=239`), so the title has to be remembered
-/// from the moment the user picked it; otherwise a restored selection would
-/// summarise as a number. Process-wide and bounded — it is a label cache, not
+/// as soon as a listing that carries it is rendered or fetched; otherwise a
+/// restored selection would summarise as a count. Both the value page (on
+/// load) and the browse tab (on restore) fill this, because a cold launch has
+/// no picker to warm it. Process-wide and bounded — it is a label cache, not
 /// state.
 abstract final class FilterValueNames {
   static const int _maxEntries = 1000;
@@ -33,6 +37,15 @@ abstract final class FilterValueNames {
     required String field,
     required String value,
   }) => _names[_cacheKey(serverId, libraryKey, field, value)];
+
+  /// Forget every remembered title, so a test can model a cold launch.
+  ///
+  /// The cache is process-wide: a fresh widget tree in the same test process
+  /// would otherwise inherit the titles an earlier leg remembered, which is
+  /// exactly how the AC6 restart assertion passed while a real restart showed
+  /// `1 selected`.
+  @visibleForTesting
+  static void clearForTest() => _names.clear();
 }
 
 /// One-line summary of everything selected for [filter], or null when the
@@ -67,9 +80,11 @@ String _clauseSummary(
   final String labels;
   if (filter.hasValueList) {
     // Plex value ids are opaque, so a restored selection can carry values the
-    // name cache has never seen. Summarising those as a count is truthful;
-    // echoing `Not 190` at the viewer is not. Opening the field remembers the
-    // titles, after which this reads normally.
+    // name cache has never seen. Summarising those as a count is truthful but
+    // reads as `1 selected`, which is not the selection the viewer made; the
+    // value page remembers every row it renders and the browse tab resolves a
+    // restored clause up front, so only a listing that never loaded falls back
+    // to the count.
     final resolved = clause.values
         .map(
           (value) => FilterValueNames.maybeLookup(

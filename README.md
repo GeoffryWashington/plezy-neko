@@ -32,6 +32,14 @@ Everything needed for playback ships inside: mpv/FFmpeg with all the common vide
 * **One-Click Updates:** When a new release is out, a small update icon appears in the home screen's top bar. Click it, hit *Update*, and Plezy Neko downloads the new version, installs it and restarts itself.
 * **Plex Playback Fix:** If a Plex server refuses direct play with an HTTP 5xx error (because the stream exceeds its remote bandwidth limit), Plezy Neko will automatically probe and fall back to a 20 Mbps server transcode—just like the official Plex apps do!
   * *Tip for Server Owners:* List your home network in Plex `Settings > Network > LAN Networks` so your local devices aren't accidentally treated as remote!
+* **Genre Filter for Plex libraries:** movie and show libraries get a **Genre** chip beside *Grouping*,
+  *Filter* and *Sort*. The picker lists the library's genres exactly as the server reports them —
+  alphabetical, de-duplicated, with a row count and honest empty and error states. Selecting several
+  genres narrows to titles that carry **all** of them (Plex is sent one repeated `genre` parameter per
+  id, so two genres intersect instead of unioning). The **Filters** sheet now lists every category a
+  section declares — genre included — on a cold open instead of the first menu-sized slice, its list
+  drags with the mouse and shows a visible thumb, and a genre selection is one shared state across the
+  chip and the sheet: it persists per library and composes with the other filters and with paging.
 
 ## 📸 Screenshots
 
@@ -66,3 +74,15 @@ Your finished build will be ready at: `build/windows/x64/runner/Release/plezy.ex
 Plezy Neko is licensed under **GPL-3.0**, matching the upstream repository.
 
 Massive credit and gratitude goes to **edde746** for creating [Plezy](https://github.com/edde746/plezy). All core media client features, playback architecture, and original themes belong to upstream. Thank you for the amazing foundation! The original upstream README is kept at [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md).
+
+## 🐛 This is a fork — where to report things
+
+Plezy Neko is a personal fork of [edde746/plezy](https://github.com/edde746/plezy), not the upstream
+project, and the two are maintained separately.
+
+* **Plezy Neko problems** (themes, the genre filter, the installer, anything Windows-specific) → open an
+  issue [here](https://github.com/GeoffryWashington/plezy-neko/issues).
+* **Problems that also happen in upstream Plezy** → please file them with
+  [edde746/plezy](https://github.com/edde746/plezy/issues); a fix there reaches both projects.
+* **Licence:** GPL-3.0, the same `LICENSE` file as upstream, unmodified. Upstream's own README is kept
+  at [docs/UPSTREAM_README.md](docs/UPSTREAM_README.md).

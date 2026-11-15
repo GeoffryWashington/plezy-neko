@@ -1857,6 +1857,45 @@ void main() {
       expect(query, containsPair('duration', '1200000'));
     });
   });
+
+  group('genre value list', () {
+    test('the resolved path is requested verbatim and the captured Directory rows parse', () async {
+      final uriRequests = <Uri>[];
+      final client = makeClient((request) async {
+        uriRequests.add(request.url);
+        return http.Response(_capturedGenreValues, 200, headers: const {'content-type': 'application/json'});
+      });
+      addTearDown(client.close);
+
+      // The path the parse recorded for the movie library's genre category —
+      // see test/services/plex_client_metadata_test.dart. It carries the
+      // grouping type, so it is addressed exactly as Plex answered it.
+      final values = await client.getFilterValues('/library/sections/11/genre?type=1');
+
+      expect(uriRequests.single.path, '/library/sections/11/genre');
+      expect(uriRequests.single.queryParameters, {'type': '1'});
+      expect(values, hasLength(33));
+      expect(values.first.key, '1278');
+      expect(values.first.title, 'Action');
+      expect(values.first.type, 'genre');
+      expect(values.map((value) => value.title).toSet(), hasLength(33));
+    });
+
+    test('the show library answers its own type-specific list', () async {
+      final uriRequests = <Uri>[];
+      final client = makeClient((request) async {
+        uriRequests.add(request.url);
+        return http.Response(_capturedGenreValuesTv, 200, headers: const {'content-type': 'application/json'});
+      });
+      addTearDown(client.close);
+
+      final values = await client.getFilterValues('/library/sections/10/genre?type=2');
+
+      expect(uriRequests.single.queryParameters, {'type': '2'});
+      expect(values, hasLength(24));
+      expect(values.map((value) => value.title), contains('Action'));
+    });
+  });
 }
 
 class _AbortAwareActivitiesClient extends http.BaseClient {
@@ -1885,3 +1924,10 @@ class _AbortAwareActivitiesClient extends http.BaseClient {
     return _response.future;
   }
 }
+
+/// `MediaContainer` of `/library/sections/11/genre?type=1` captured from the
+/// owner's Plex server on 2026-11-14 (33 `Directory` rows, token redacted).
+const _capturedGenreValues = r'''{"MediaContainer":{"size":33,"allowSync":false,"art":"/:/resources/movie-fanart.jpg","content":"secondary","identifier":"com.plexapp.plugins.library","mediaTagPrefix":"/system/bundle/media/flags/","mediaTagVersion":1792780474,"thumb":"/:/resources/movie.png","title1":"Movies","title2":"By Genre","viewGroup":"secondary","viewMode":65592,"Directory":[{"fastKey":"/library/sections/11/all?genre=1278","key":"1278","title":"Action","type":"genre"},{"fastKey":"/library/sections/11/all?genre=1594","key":"1594","title":"Adventure","type":"genre"},{"fastKey":"/library/sections/11/all?genre=1592","key":"1592","title":"Animation","type":"genre"},{"fastKey":"/library/sections/11/all?genre=1593","key":"1593","title":"Anime","type":"genre"},{"fastKey":"/library/sections/11/all?genre=9309","key":"9309","title":"Biography","type":"genre"},{"fastKey":"/library/sections/11/all?genre=6996","key":"6996","title":"Children","type":"genre"},{"fastKey":"/library/sections/11/all?genre=891","key":"891","title":"Comedy","type":"genre"},{"fastKey":"/library/sections/11/all?genre=1279","key":"1279","title":"Crime","type":"genre"},{"fastKey":"/library/sections/11/all?genre=14640","key":"14640","title":"Documentary","type":"genre"},{"fastKey":"/library/sections/11/all?genre=890","key":"890","title":"Drama","type":"genre"},{"fastKey":"/library/sections/11/all?genre=1507","key":"1507","title":"Family","type":"genre"},{"fastKey":"/library/sections/11/all?genre=1595","key":"1595","title":"Fantasy","type":"genre"},{"fastKey":"/library/sections/11/all?genre=43560","key":"43560","title":"Film-Noir","type":"genre"},{"fastKey":"/library/sections/11/all?genre=2827","key":"2827","title":"Food","type":"genre"},{"fastKey":"/library/sections/11/all?genre=3235","key":"3235","title":"History","type":"genre"},{"fastKey":"/library/sections/11/all?genre=16576","key":"16576","title":"Horror","type":"genre"},{"fastKey":"/library/sections/11/all?genre=60438","key":"60438","title":"Indie","type":"genre"},{"fastKey":"/library/sections/11/all?genre=42761","key":"42761","title":"Martial Arts","type":"genre"},{"fastKey":"/library/sections/11/all?genre=21545","key":"21545","title":"Mini-Series","type":"genre"},{"fastKey":"/library/sections/11/all?genre=13754","key":"13754","title":"Music","type":"genre"},{"fastKey":"/library/sections/11/all?genre=2694","key":"2694","title":"Musical","type":"genre"},{"fastKey":"/library/sections/11/all?genre=1280","key":"1280","title":"Mystery","type":"genre"},{"fastKey":"/library/sections/11/all?genre=63416","key":"63416","title":"News","type":"genre"},{"fastKey":"/library/sections/11/all?genre=1506","key":"1506","title":"Romance","type":"genre"},{"fastKey":"/library/sections/11/all?genre=1596","key":"1596","title":"Science Fiction","type":"genre"},{"fastKey":"/library/sections/11/all?genre=30602","key":"30602","title":"Short","type":"genre"},{"fastKey":"/library/sections/11/all?genre=9903","key":"9903","title":"Sport","type":"genre"},{"fastKey":"/library/sections/11/all?genre=1281","key":"1281","title":"Suspense","type":"genre"},{"fastKey":"/library/sections/11/all?genre=1277","key":"1277","title":"Thriller","type":"genre"},{"fastKey":"/library/sections/11/all?genre=105992","key":"105992","title":"Travel","type":"genre"},{"fastKey":"/library/sections/11/all?genre=48493","key":"48493","title":"TV Movie","type":"genre"},{"fastKey":"/library/sections/11/all?genre=11374","key":"11374","title":"War","type":"genre"},{"fastKey":"/library/sections/11/all?genre=22149","key":"22149","title":"Western","type":"genre"}]}}''';
+
+/// `MediaContainer` of `/library/sections/10/genre?type=2` (24 rows).
+const _capturedGenreValuesTv = r'''{"MediaContainer":{"size":24,"allowSync":false,"art":"/:/resources/show-fanart.jpg","content":"secondary","identifier":"com.plexapp.plugins.library","mediaTagPrefix":"/system/bundle/media/flags/","mediaTagVersion":1792780474,"nocache":true,"thumb":"/:/resources/show.png","title1":"TV Shows","title2":"By Genre","viewGroup":"secondary","viewMode":65592,"Directory":[{"fastKey":"/library/sections/10/all?genre=1278","key":"1278","title":"Action","type":"genre"},{"fastKey":"/library/sections/10/all?genre=1594","key":"1594","title":"Adventure","type":"genre"},{"fastKey":"/library/sections/10/all?genre=1592","key":"1592","title":"Animation","type":"genre"},{"fastKey":"/library/sections/10/all?genre=1593","key":"1593","title":"Anime","type":"genre"},{"fastKey":"/library/sections/10/all?genre=9309","key":"9309","title":"Biography","type":"genre"},{"fastKey":"/library/sections/10/all?genre=891","key":"891","title":"Comedy","type":"genre"},{"fastKey":"/library/sections/10/all?genre=1279","key":"1279","title":"Crime","type":"genre"},{"fastKey":"/library/sections/10/all?genre=14640","key":"14640","title":"Documentary","type":"genre"},{"fastKey":"/library/sections/10/all?genre=890","key":"890","title":"Drama","type":"genre"},{"fastKey":"/library/sections/10/all?genre=1507","key":"1507","title":"Family","type":"genre"},{"fastKey":"/library/sections/10/all?genre=1595","key":"1595","title":"Fantasy","type":"genre"},{"fastKey":"/library/sections/10/all?genre=2827","key":"2827","title":"Food","type":"genre"},{"fastKey":"/library/sections/10/all?genre=15016","key":"15016","title":"Home and Garden","type":"genre"},{"fastKey":"/library/sections/10/all?genre=21545","key":"21545","title":"Mini-Series","type":"genre"},{"fastKey":"/library/sections/10/all?genre=1280","key":"1280","title":"Mystery","type":"genre"},{"fastKey":"/library/sections/10/all?genre=15015","key":"15015","title":"Reality","type":"genre"},{"fastKey":"/library/sections/10/all?genre=1506","key":"1506","title":"Romance","type":"genre"},{"fastKey":"/library/sections/10/all?genre=1597","key":"1597","title":"Sci-Fi & Fantasy","type":"genre"},{"fastKey":"/library/sections/10/all?genre=1596","key":"1596","title":"Science Fiction","type":"genre"},{"fastKey":"/library/sections/10/all?genre=21665","key":"21665","title":"Soap","type":"genre"},{"fastKey":"/library/sections/10/all?genre=1281","key":"1281","title":"Suspense","type":"genre"},{"fastKey":"/library/sections/10/all?genre=1277","key":"1277","title":"Thriller","type":"genre"},{"fastKey":"/library/sections/10/all?genre=11374","key":"11374","title":"War","type":"genre"},{"fastKey":"/library/sections/10/all?genre=22149","key":"22149","title":"Western","type":"genre"}]}}''';

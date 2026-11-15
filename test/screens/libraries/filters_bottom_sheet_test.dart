@@ -445,6 +445,22 @@ void main() {
     expect(find.text('Cached Genre'), findsOneWidget);
     expect(loadCount, 0);
   });
+
+  testWidgets('an initial filter opens that category page on arrival', (tester) async {
+    // The genre chip enters the same editor one page in, so the sheet has to
+    // honour the requested category from its own initState — the category list
+    // must never be the state the viewer starts from.
+    final requests = _FilterRequests();
+    await _pumpSheet(tester, loader: requests.load, initialFilter: 'genre', settle: false);
+
+    expect(find.text('Filters'), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    requests.request('genre').complete([_value('action', 'Action')]);
+    await tester.pumpAndSettle();
+    expect(find.text('Action'), findsOneWidget);
+    expect(find.text('Genre'), findsOneWidget, reason: 'the page title is the category');
+  });
 }
 
 Future<_SheetHarness> _pumpSheet(
@@ -453,6 +469,8 @@ Future<_SheetHarness> _pumpSheet(
   List<LibraryFilter> selectedFilters = const [],
   Map<String, List<MediaFilterValue>>? cachedValues,
   ValueChanged<List<LibraryFilter>>? onChanged,
+  String? initialFilter,
+  bool settle = true,
 }) async {
   final config = ValueNotifier(
     _SheetConfig(
@@ -461,6 +479,7 @@ Future<_SheetHarness> _pumpSheet(
       selectedFilters: selectedFilters,
       cachedValues: cachedValues,
       loader: loader,
+      initialFilter: initialFilter,
     ),
   );
 
@@ -482,6 +501,7 @@ Future<_SheetHarness> _pumpSheet(
                     libraryKey: value.libraryKey,
                     loadFilterValues: value.loader,
                     cachedValues: value.cachedValues,
+                    initialFilter: value.initialFilter,
                   ),
                 ),
               );
@@ -494,7 +514,14 @@ Future<_SheetHarness> _pumpSheet(
   );
 
   await tester.tap(find.text('Open'));
-  await tester.pumpAndSettle();
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    // A page that opens on arrival loads its values immediately, and the
+    // transient spinner never settles — advance the sheet transition instead.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+  }
   final harness = _SheetHarness(config);
   addTearDown(harness.dispose);
   return harness;
@@ -541,6 +568,7 @@ class _SheetConfig {
     required this.selectedFilters,
     required this.loader,
     this.cachedValues,
+    this.initialFilter,
   });
 
   final String serverId;
@@ -548,6 +576,7 @@ class _SheetConfig {
   final List<LibraryFilter> selectedFilters;
   final Future<List<MediaFilterValue>> Function(MediaFilter filter) loader;
   final Map<String, List<MediaFilterValue>>? cachedValues;
+  final String? initialFilter;
 
   _SheetConfig copyWith({String? libraryKey}) => _SheetConfig(
     serverId: serverId,
@@ -555,6 +584,7 @@ class _SheetConfig {
     selectedFilters: selectedFilters,
     loader: loader,
     cachedValues: cachedValues,
+    initialFilter: initialFilter,
   );
 }
 

@@ -122,6 +122,18 @@ class MediaFilter {
 
   factory MediaFilter.fromJson(Map<String, dynamic> json) => _$MediaFilterFromJson(json);
 
+  /// The genre control's filter for a section that publishes no `genre` field.
+  ///
+  /// The key marks the field enumerable: summaries resolve names through it and
+  /// the chip's cold-start prefetch asks for its listing.
+  factory MediaFilter.genreFallback({required String title}) => MediaFilter(
+    filter: MediaFilterField.genre,
+    filterType: MediaFilterType.tag,
+    key: MediaFilterField.genre,
+    title: title,
+    type: 'filter',
+  );
+
   Map<String, dynamic> toJson() => _$MediaFilterToJson(this);
 
   /// Whether the backend can enumerate this field's values.

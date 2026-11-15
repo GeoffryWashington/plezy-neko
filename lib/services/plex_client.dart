@@ -4306,18 +4306,56 @@ class PlexClient
     _ => MediaFilterType.tag,
   };
 
-  /// Value-listing endpoint for a field, or empty when Plex has no list for
-  /// it (free text, sizes, durations, dates).
+  /// The bare field name a value-list endpoint takes, from a filter's wire
+  /// name. Plex qualifies a field by its owning type (`show.genre`) when the
+  /// section holds more than one type, but the value endpoints are always
+  /// addressed by the bare name.
+  static String _bareFilterField(String wireField) =>
+      wireField.contains('.') ? wireField.split('.').last : wireField;
+
+  /// Value-listing endpoint for [filter] in a Plex section, or null when the
+  /// field has no enumerable values (free text, sizes, durations, dates).
+  ///
+  /// [typeId] is the Plex `type=` of the grouping being browsed — 1 movies,
+  /// 2 shows, 3 seasons, 4 episodes. Plex answers `/genre` per type: the
+  /// measured show library returned 24 genre rows for `type=2` and an empty
+  /// list for `type=3`/`4`, so the caller must pass the grouping it is
+  /// about to query rather than the library's own type. Null means "no
+  /// `type=`", which lets PMS answer for the section's own type.
+  ///
+  /// Public so the editor asks for the same path the parse path recorded.
+  /// Both sides build that path through [_filterValuesKeyForField], so the
+  /// shape stays in sync; the deliberate exception is the grouped browse,
+  /// where the editor passes the browsed grouping's `type=` ([typeId]) while
+  /// the parse path records the section's own type — the two therefore
+  /// differ on seasons/episodes by design.
+  String? filterValuesKeyFor(MediaFilter filter, {required String libraryId, int? typeId}) =>
+      _filterValuesKeyForField(filter.filterType, _bareFilterField(filter.filter), libraryId: libraryId, typeId: typeId);
+
+  /// Value-listing endpoint for a field as Plex declared it, or empty when
+  /// Plex has no list for it (free text, sizes, durations, dates).
   static String _plexFilterValuesKey(String plexFieldType, String bareField, {required String libraryId, int? typeId}) {
+    final key = _filterValuesKeyForField(
+      _plexFilterTypeFor(plexFieldType),
+      bareField,
+      libraryId: libraryId,
+      typeId: typeId,
+    );
+    return key ?? '';
+  }
+
+  /// Shared implementation of the value-list path — see
+  /// [filterValuesKeyFor].
+  static String? _filterValuesKeyForField(String filterType, String field, {required String libraryId, int? typeId}) {
     const listedIntegers = {'year', 'decade'};
-    final listed = switch (plexFieldType) {
-      'boolean' || 'string' || 'date' => false,
-      'integer' => listedIntegers.contains(bareField),
+    final listed = switch (filterType) {
+      MediaFilterType.boolean || MediaFilterType.string || MediaFilterType.date => false,
+      MediaFilterType.integer => listedIntegers.contains(field),
       _ => true,
     };
-    if (!listed) return '';
+    if (!listed) return null;
     final suffix = typeId == null ? '' : '?type=$typeId';
-    return '/library/sections/$libraryId/$bareField$suffix';
+    return '/library/sections/$libraryId/$field$suffix';
   }
 
   @override

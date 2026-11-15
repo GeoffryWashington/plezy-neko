@@ -29,7 +29,7 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
+build/
 /debug-info/
 
 # Windows Store packaging output (windows/build-msix.ps1)
@@ -75,3 +75,11 @@ maestro/**/*.png
 
 server/deploy.sh
 server/Caddyfile
+
+# Local-only working files (never published)
+CLAUDE.local.md
+*.local.md
+/setup.iss
+/dist/
+/Plezy Neko.bat
+/_qwen/

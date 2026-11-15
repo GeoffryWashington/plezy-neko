@@ -45,6 +45,7 @@ import '../../../widgets/overlay_sheet.dart';
 import '../../../mixins/library_tab_focus_mixin.dart';
 import '../folder_tree_view.dart';
 import '../filters_bottom_sheet.dart';
+import '../filters/filter_summary.dart';
 import '../sort_bottom_sheet.dart';
 import '../../../widgets/app_icon.dart';
 import '../../../widgets/focusable_list_tile.dart';
@@ -391,11 +392,15 @@ class _LibraryBrowseTabState extends BaseLibraryTabState<MediaItem, LibraryBrows
   // Focus nodes for filter chips
   final FocusNode _groupingChipFocusNode = FocusNode(debugLabel: 'grouping_chip');
   final FocusNode _filtersChipFocusNode = FocusNode(debugLabel: 'filters_chip');
+  final FocusNode _genreChipFocusNode = FocusNode(debugLabel: 'genre_chip');
   final FocusNode _sortChipFocusNode = FocusNode(debugLabel: 'sort_chip');
 
-  // Anchor keys for the desktop dropdown variants of the chip menus.
+  // Anchor keys for the desktop dropdown variants of the chip menus. The genre
+  // chip needs its own key: reusing the filters chip's would re-anchor that
+  // menu to whichever chip was built last.
   final GlobalKey _groupingChipKey = GlobalKey();
   final GlobalKey _filtersChipKey = GlobalKey();
+  final GlobalKey _genreChipKey = GlobalKey();
   final GlobalKey _sortChipKey = GlobalKey();
 
   // The inner CustomScrollView attaches its position to NestedScrollView's
@@ -427,6 +432,7 @@ class _LibraryBrowseTabState extends BaseLibraryTabState<MediaItem, LibraryBrows
     // _innerPosition is owned by the inner CustomScrollView's Scrollable.
     _groupingChipFocusNode.dispose();
     _filtersChipFocusNode.dispose();
+    _genreChipFocusNode.dispose();
     _sortChipFocusNode.dispose();
     _alphaJumpBarFocusNode.dispose();
     _currentFirstVisibleIndex.dispose();
@@ -664,6 +670,14 @@ class _LibraryBrowseTabState extends BaseLibraryTabState<MediaItem, LibraryBrows
         }
       });
       _notifyFiltersActive();
+
+      // A restored clause stores ids, not labels, and [FilterValueNames] is
+      // the only place the summary can learn them. On a cold launch nobody
+      // has opened the picker yet, so resolve the restored listings here —
+      // background, once — or the first painted chip reads `1 selected`.
+      unawaited(
+        _resolveRestoredFilterValueTitles(savedFilters, generation: generation, libraryGlobalKey: libraryGlobalKey),
+      );
 
       if (library.backend.usesMediaBrowserApi) {
         _loadMediaBrowserFiltersInBackground(generation, libraryGlobalKey, library);
@@ -1025,6 +1039,15 @@ class _LibraryBrowseTabState extends BaseLibraryTabState<MediaItem, LibraryBrows
               trailing: const AppIcon(Symbols.chevron_right_rounded, fill: 1),
               onTap: () => _showFiltersOptionsPage(controller),
             ),
+          if (_isGenreChipVisible)
+            FocusableListTile(
+              key: const Key('libraryGenreRow'),
+              leading: const AppIcon(Symbols.theater_comedy_rounded, fill: 1),
+              title: Text(t.libraries.filterCategories.genre),
+              subtitle: _genreSelectionSummary == null ? null : Text(_genreSelectionSummary!),
+              trailing: const AppIcon(Symbols.chevron_right_rounded, fill: 1),
+              onTap: () => _showGenreOptionsPage(controller),
+            ),
           if (_isSortChipVisible)
             FocusableListTile(
               leading: const AppIcon(Symbols.sort_rounded, fill: 1),
@@ -1157,9 +1180,37 @@ class _LibraryBrowseTabState extends BaseLibraryTabState<MediaItem, LibraryBrows
     _openFiltersSheet((builder) => controller.show(builder: builder));
   }
 
+  /// Opens the same filter editor on its genre page.
+  ///
+  /// One editor, one selection: the chip is only a second entry state, so a
+  /// pick made here and a pick made on the sheet's Genre row are the same
+  /// clause of the same [_selectedFilters] list.
+  void _showGenrePicker() {
+    final anchorRect = useAnchoredChipMenus(context) ? chipAnchorRect(_genreChipKey) : null;
+    if (anchorRect != null) {
+      unawaited(_showFiltersMenu(anchorRect, initialFilter: MediaFilterField.genre));
+      return;
+    }
+    SelectKeyUpSuppressor.suppressSelectUntilKeyUp();
+    final controller = OverlaySheetController.of(context);
+    _openFiltersSheet(
+      (builder) => controller.show(builder: builder),
+      initialFilter: MediaFilterField.genre,
+    );
+  }
+
   void _showFiltersOptionsPage(OverlaySheetController controller) {
     SelectKeyUpSuppressor.suppressSelectUntilKeyUp();
     _openFiltersSheet((builder) => controller.push(builder: builder), onBack: () => controller.pop());
+  }
+
+  void _showGenreOptionsPage(OverlaySheetController controller) {
+    SelectKeyUpSuppressor.suppressSelectUntilKeyUp();
+    _openFiltersSheet(
+      (builder) => controller.push(builder: builder),
+      onBack: () => controller.pop(),
+      initialFilter: MediaFilterField.genre,
+    );
   }
 
   /// Open the filter editor and commit once, when it closes.
@@ -1169,13 +1220,23 @@ class _LibraryBrowseTabState extends BaseLibraryTabState<MediaItem, LibraryBrows
   /// commit hangs off the sheet's future rather than any one of those paths.
   /// Committing post-frame keeps the reload from stealing focus while the
   /// sheet is still tearing down, exactly as the sort sheet does.
-  void _openFiltersSheet(Future<dynamic> Function(WidgetBuilder builder) open, {VoidCallback? onBack}) {
+  void _openFiltersSheet(
+    Future<dynamic> Function(WidgetBuilder builder) open, {
+    VoidCallback? onBack,
+    String? initialFilter,
+  }) {
     var pending = _selectedFilters;
     // The staged edits belong to the library that was open when the editor
     // was: committing them after a library switch would write one library's
     // clauses into another's storage key.
     final owner = widget.library.globalKey;
-    open((_) => _buildFiltersBottomSheet(onChanged: (filters) => pending = filters, onBack: onBack)).then((_) {
+    open(
+      (_) => _buildFiltersBottomSheet(
+        onChanged: (filters) => pending = filters,
+        onBack: onBack,
+        initialFilter: initialFilter,
+      ),
+    ).then((_) {
       if (!mounted) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || owner != widget.library.globalKey) return;
@@ -1185,7 +1246,11 @@ class _LibraryBrowseTabState extends BaseLibraryTabState<MediaItem, LibraryBrows
     });
   }
 
-  Widget _buildFiltersBottomSheet({required ValueChanged<List<LibraryFilter>> onChanged, VoidCallback? onBack}) {
+  Widget _buildFiltersBottomSheet({
+    required ValueChanged<List<LibraryFilter>> onChanged,
+    VoidCallback? onBack,
+    String? initialFilter,
+  }) {
     return FiltersBottomSheet(
       filters: _filters,
       selectedFilters: _selectedFilters,
@@ -1193,6 +1258,7 @@ class _LibraryBrowseTabState extends BaseLibraryTabState<MediaItem, LibraryBrows
       libraryKey: widget.library.globalKey,
       loadFilterValues: _loadFilterValues,
       onBack: onBack,
+      initialFilter: initialFilter,
       // Pre-populated values arrive from MediaBrowser filter discovery. The
       // empty map for Plex libraries falls through to lazy `getFilterValues`.
       cachedValues: _mediaBrowserFilterValues.isEmpty ? null : _mediaBrowserFilterValues,
@@ -1219,11 +1285,108 @@ class _LibraryBrowseTabState extends BaseLibraryTabState<MediaItem, LibraryBrows
   /// chip counts what the viewer set, not how many clauses that took.
   int get _activeFilterFieldCount => _selectedFilters.map((clause) => clause.field).toSet().length;
 
+  /// The category whose listing resolves a restored clause's ids, when the
+  /// backend enumerates that field's values.
+  ///
+  /// A clause stores only the field name; the genre control also exists for a
+  /// section that publishes no genre field, so the chip's own fallback filter
+  /// is consulted too. A filter without a listing key cannot be resolved
+  /// asynchronously and stays on the summary's count.
+  MediaFilter? _valueListFilterFor(String field) {
+    final resolved =
+        _filters.where((candidate) => candidate.filter == field).firstOrNull ??
+        (field == MediaFilterField.genre ? _genreChipFilter : null);
+    if (resolved == null || !resolved.hasValueList) return null;
+    return resolved;
+  }
+
+  /// Learn the titles behind the clauses restored from prefs.
+  ///
+  /// The summary renders `Genre: Action` only when every id in the clause has
+  /// a remembered title, and nothing remembers one until a listing is fetched
+  /// or rendered. The picker does that on open and on every tap; a cold launch
+  /// has neither, so the tab fetches the listing the picker would — one
+  /// request per unresolved value-list category, skipped entirely once the
+  /// cache knows the ids. Failures are logged and swallowed: a label is never
+  /// worth failing the browse for.
+  Future<void> _resolveRestoredFilterValueTitles(
+    List<LibraryFilter> clauses, {
+    required int generation,
+    required String libraryGlobalKey,
+  }) async {
+    final serverId = widget.library.serverId;
+    if (clauses.isEmpty || serverId == null) return;
+
+    final unresolved = <(MediaFilter, LibraryFilter)>[];
+    for (final clause in clauses) {
+      if (clause.values.isEmpty) continue;
+      final filter = _valueListFilterFor(clause.field);
+      if (filter == null) continue;
+      final known = clause.values.every(
+        (value) =>
+            FilterValueNames.maybeLookup(
+              serverId: serverId,
+              libraryKey: libraryGlobalKey,
+              field: clause.field,
+              value: value,
+            ) !=
+            null,
+      );
+      if (!known) unresolved.add((filter, clause));
+    }
+    if (unresolved.isEmpty) return;
+
+    var learned = false;
+    for (final (filter, clause) in unresolved) {
+      var values = _mediaBrowserFilterValues[filter.filter];
+      if (values == null) {
+        try {
+          values = await _loadFilterValues(filter);
+        } catch (error, stackTrace) {
+          appLogger.w(
+            'Could not resolve names for the restored ${clause.field} filter',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          continue;
+        }
+      }
+      for (final value in values) {
+        FilterValueNames.remember(
+          serverId: serverId,
+          libraryKey: libraryGlobalKey,
+          field: clause.field,
+          value: libraryFilterValueId(value.key, clause.field),
+          title: value.title,
+        );
+        learned = true;
+      }
+    }
+    if (!learned) return;
+    if (!mounted || !isCurrentLibraryLoad(generation, libraryGlobalKey)) return;
+    // The chips bar and the sheet rows read the cache while building, so a
+    // rebuild is what turns `1 selected` into the titles just learned.
+    setState(() {});
+  }
+
   Future<List<MediaFilterValue>> _loadFilterValues(MediaFilter filter) async {
     if (!mounted) return const [];
 
     final client = context.tryGetPlexClientForServer(serverIdOrNull(widget.library.serverId));
-    if (client != null) return client.getFilterValues(filter.key);
+    if (client != null) {
+      // The active grouping decides the `type=` of the listing: Plex answers
+      // /genre per type (movies 1, shows 2, seasons 3, episodes 4), so a picker
+      // opened on the Seasons grouping asks for the list that grouping queries.
+      final key = client.filterValuesKeyFor(
+        filter,
+        libraryId: widget.library.id,
+        typeId: int.tryParse(_getGroupingTypeId()),
+      );
+      // No listing endpoint for this field: there is nothing to fetch, and the
+      // summary keeps the count it already shows.
+      if (key == null || key.isEmpty) return const [];
+      return client.getFilterValues(key);
+    }
 
     // MediaBrowser canonical filter values come from the cached filter
     // discovery payload. If that payload missed a category, there is no
@@ -1234,7 +1397,7 @@ class _LibraryBrowseTabState extends BaseLibraryTabState<MediaItem, LibraryBrows
   /// Desktop counterpart of the filter sheet: the same editor hosted in a
   /// popup anchored to the chip. Edits stage into [pending] and commit once
   /// the panel is dismissed, whichever way it was dismissed.
-  Future<void> _showFiltersMenu(Rect anchorRect) async {
+  Future<void> _showFiltersMenu(Rect anchorRect, {String? initialFilter}) async {
     var pending = _selectedFilters;
     await showAnchoredFilterPanel(
       context,
@@ -1246,6 +1409,7 @@ class _LibraryBrowseTabState extends BaseLibraryTabState<MediaItem, LibraryBrows
       libraryKey: widget.library.globalKey,
       loadFilterValues: _loadFilterValues,
       cachedValues: _mediaBrowserFilterValues,
+      initialFilter: initialFilter,
     );
     if (!mounted || listEquals(pending, _selectedFilters)) return;
     await _applyFilters(pending);
@@ -1904,6 +2068,47 @@ class _LibraryBrowseTabState extends BaseLibraryTabState<MediaItem, LibraryBrows
   bool get _isFiltersChipVisible =>
       (_filters.isNotEmpty || _selectedFilters.isNotEmpty) && _selectedGrouping != 'folders';
 
+  /// Groupings whose value list comes from the section's own video `/genre`
+  /// endpoint. Music groupings answer a different type and are out of scope for
+  /// this control; folders have no flat page to filter.
+  static const Set<String> _genreGroupings = {
+    browseGroupingAll,
+    browseGroupingMovies,
+    browseGroupingShows,
+    browseGroupingSeasons,
+    browseGroupingEpisodes,
+  };
+
+  /// The genre chip is a Plex video-library control: MediaBrowser libraries
+  /// keep their own filter list and cached values untouched, and a shared
+  /// section has no `/genre` listing of its own to offer.
+  bool get _isGenreChipVisible =>
+      !_isMediaBrowserLibrary && !widget.library.isShared && _genreGroupings.contains(_selectedGrouping);
+
+  /// The parsed genre category, or null for a section that publishes none.
+  MediaFilter? get _genreFilter => _filters.where((filter) => filter.filter == MediaFilterField.genre).firstOrNull;
+
+  /// The category the genre chip and its page edit.
+  ///
+  /// A section that publishes no genre field still gets the control (it is how
+  /// the viewer discovers the feature), with values from the section's own
+  /// `/genre` listing — never a hard-coded name list.
+  MediaFilter get _genreChipFilter =>
+      _genreFilter ?? MediaFilter.genreFallback(title: t.libraries.filterCategories.genre);
+
+  /// One-line summary of the genre selection, or null when it is unset.
+  String? get _genreSelectionSummary => filterFieldSummary(
+    filter: _genreChipFilter,
+    clauses: _selectedFilters,
+    serverId: widget.library.serverId ?? '',
+    libraryKey: widget.library.globalKey,
+  );
+
+  String get _genreChipLabel {
+    final summary = _genreSelectionSummary;
+    return summary == null ? t.libraries.filterCategories.genre : t.libraries.genreChip(summary: summary);
+  }
+
   bool get _isSortChipVisible => _sortOptions.isNotEmpty && _selectedGrouping != 'folders';
 
   /// Builds the chips bar widget
@@ -1926,6 +2131,14 @@ class _LibraryBrowseTabState extends BaseLibraryTabState<MediaItem, LibraryBrows
                 ? t.libraries.filters
                 : t.libraries.filtersWithCount(count: _activeFilterFieldCount),
             onPressed: _showFiltersBottomSheet,
+          ),
+        if (_isGenreChipVisible)
+          OptionsChipDescriptor(
+            anchorKey: _genreChipKey,
+            focusNode: _genreChipFocusNode,
+            icon: Symbols.theater_comedy_rounded,
+            label: _genreChipLabel,
+            onPressed: _showGenrePicker,
           ),
         if (_isSortChipVisible)
           OptionsChipDescriptor(

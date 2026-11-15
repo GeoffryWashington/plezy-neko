@@ -100,25 +100,43 @@ class PlexLibraryQueryTranslator implements LibraryQueryTranslator {
 /// Lower filter clauses onto Plex's query vocabulary.
 ///
 /// The operator lives in the query *key* (`year>>=2015` is key `year>>`,
-/// value `2015`), values inside one clause are comma-joined and OR, and two
-/// clauses that produce the same key repeat it, which Plex ANDs. Repeated
-/// keys survive to the wire because `encodeQueryParameters` expands iterable
-/// values into repeated pairs.
+/// value `2015`). Every field comma-joins its values into one pair, which ORs
+/// inside the clause — **except genre with more than one value**: Plex ANDs a
+/// repeated key, so a multi-value genre clause emits `genre=<id>` once per id
+/// (`genre=1278&genre=1277`) — the intersection the chip promises.
+///
+/// Measured on section 11, 2026-11-14: `genre=1278&genre=1277` is 478 = A ∩ B
+/// where the comma form is 1236 = A ∪ B, and composed with `unwatched=1` the
+/// repeated key is 823 = A ∩ unwatched. The repeated key is the only wire shape
+/// Plex ANDs, so this is the server's behaviour, not the wire's neutral form: a
+/// server that ORs repeated keys would answer the union under a chip that says
+/// "is". One genre value keeps the single form, and an excluded genre
+/// (`op.isNot` -> key `genre!`) keeps the comma form, because that operator's
+/// documented meaning is "values inside a clause OR".
+/// Repeated keys survive to the wire because `encodeQueryParameters` expands
+/// iterable values into repeated pairs.
 Map<String, dynamic> plexFilterQueryParameters(Iterable<LibraryFilter> clauses) {
   final params = <String, dynamic>{};
   for (final clause in clauses) {
     final values = clause.values.where((value) => value.isNotEmpty).toList();
     if (clause.field.isEmpty || values.isEmpty) continue;
     final key = '${clause.field}${clause.op.wireSuffix}';
-    final value = values.join(',');
+    // Genre is the one asymmetric field: inclusion of N>1 ids is an
+    // intersection, and the only wire shape Plex ANDs is the repeated key. Plex
+    // qualifies the field by its owning type on a cross-type section
+    // (`show.genre`), so compare the bare name and keep the qualified key.
+    final field = clause.field;
+    final bare = field.contains('.') ? field.split('.').last : field;
+    final repeatedKey = bare == MediaFilterField.genre && clause.op == LibraryFilterOperator.is_ && values.length > 1;
+    final emitted = repeatedKey ? values : <String>[values.join(',')];
     final existing = params[key];
     if (existing == null) {
-      params[key] = value;
-    } else if (existing is List<String>) {
-      existing.add(value);
-    } else {
-      params[key] = <String>[existing as String, value];
+      params[key] = emitted.length == 1 ? emitted.single : <String>[...emitted];
+      continue;
     }
+    final acc = existing is List<String> ? existing : <String>[existing as String];
+    acc.addAll(emitted);
+    params[key] = acc;
   }
   return params;
 }

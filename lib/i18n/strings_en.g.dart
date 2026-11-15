@@ -3343,6 +3343,15 @@ class Translations$libraries$en {
 	/// en: 'Filters (${count})'
 	String filtersWithCount({required Object count}) => 'Filters (${count})';
 
+	/// en: 'Genre: ${summary}'
+	String genreChip({required Object summary}) => 'Genre: ${summary}';
+
+	/// en: '${count} genres'
+	String genreValuesCount({required Object count}) => '${count} genres';
+
+	/// en: 'This library lists no genres for this view'
+	String get genreValuesEmpty => 'This library lists no genres for this view';
+
 	/// en: 'No recommendations available'
 	String get noRecommendations => 'No recommendations available';
 
@@ -8622,6 +8631,9 @@ extension on Translations {
 			'libraries.content' => 'library content',
 			'libraries.selectLibrary' => 'Select library',
 			'libraries.filtersWithCount' => ({required Object count}) => 'Filters (${count})',
+			'libraries.genreChip' => ({required Object summary}) => 'Genre: ${summary}',
+			'libraries.genreValuesCount' => ({required Object count}) => '${count} genres',
+			'libraries.genreValuesEmpty' => 'This library lists no genres for this view',
 			'libraries.noRecommendations' => 'No recommendations available',
 			'libraries.noCollections' => 'No collections in this library',
 			'libraries.noFoldersFound' => 'No folders found',
@@ -9051,6 +9063,8 @@ extension on Translations {
 			'music.sleepTimerMinutes' => ({required Object n}) => '${n} minutes',
 			'music.stopPlayback' => 'Stop playback',
 			'music.previousTrack' => 'Previous track',
+			_ => null,
+		} ?? switch (path) {
 			'music.nextTrack' => 'Next track',
 			'music.repeat' => 'Repeat',
 			'music.repeatAll' => 'Repeat all',
@@ -9070,11 +9084,11 @@ extension on Translations {
 			'watchTogether.joining' => 'Joining...',
 			'watchTogether.controlMode' => 'Control Mode',
 			'watchTogether.controlModeQuestion' => 'Who can control playback?',
+			_ => null,
+		} ?? switch (path) {
 			'watchTogether.hostOnly' => 'Host Only',
 			'watchTogether.anyone' => 'Anyone',
 			'watchTogether.hostingSession' => 'Hosting Session',
-			_ => null,
-		} ?? switch (path) {
 			'watchTogether.inSession' => 'In Session',
 			'watchTogether.sessionCode' => 'Session Code',
 			'watchTogether.openSessionControls' => 'Open Watch Together session controls',
@@ -9565,6 +9579,8 @@ extension on Translations {
 			'trakt.disconnectConfirm' => 'Disconnect Trakt account?',
 			'trakt.disconnectConfirmBody' => 'Plezy will stop sending events to Trakt. You can reconnect any time.',
 			'trakt.scrobble' => 'Real-time scrobbling',
+			_ => null,
+		} ?? switch (path) {
 			'trakt.scrobbleDescription' => 'Send play, pause, and stop events to Trakt during playback.',
 			'trakt.watchedSync' => 'Sync watched status',
 			'trakt.watchedSyncDescription' => 'When you mark items as watched in Plezy, they are also marked as watched on Trakt.',
@@ -9584,11 +9600,11 @@ extension on Translations {
 			'seerr.request' => 'Request',
 			'seerr.request4k' => 'Request in 4K',
 			'seerr.seasons' => 'Seasons',
+			_ => null,
+		} ?? switch (path) {
 			'seerr.allSeasons' => 'All seasons',
 			'seerr.advancedOptions' => 'Advanced',
 			'seerr.destinationServer' => 'Destination server',
-			_ => null,
-		} ?? switch (path) {
 			'seerr.qualityProfile' => 'Quality profile',
 			'seerr.rootFolder' => 'Root folder',
 			'seerr.languageProfile' => 'Language profile',

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
@@ -48,6 +49,12 @@ class FiltersBottomSheet extends StatefulWidget {
   /// MediaBrowser libraries where values arrive with the category listing.
   final Map<String, List<MediaFilterValue>>? cachedValues;
 
+  /// Filter key (e.g. `genre`) whose editor page the sheet opens on arrival.
+  ///
+  /// Lets an entry point that names one category — the genre chip — reuse this
+  /// editor instead of growing a second picker. Null opens the category list.
+  final String? initialFilter;
+
   const FiltersBottomSheet({
     super.key,
     required this.filters,
@@ -58,6 +65,7 @@ class FiltersBottomSheet extends StatefulWidget {
     required this.loadFilterValues,
     this.onBack,
     this.cachedValues,
+    this.initialFilter,
   });
 
   @override
@@ -76,12 +84,48 @@ class _FiltersBottomSheetState extends State<FiltersBottomSheet> {
   late List<MediaFilter> _sortedFilters;
   late final FocusNode _initialFocusNode;
 
+  /// Scroll position of the category list. Owned so the list can carry a
+  /// permanent scrollbar thumb — the sheet is used from a menu-sized anchored
+  /// panel, where the server's 40 categories never fit at once.
+  final ScrollController _categoryScroll = ScrollController();
+
   @override
   void initState() {
     super.initState();
     _selection = List<LibraryFilter>.of(widget.selectedFilters);
     _sortFilters();
     _initialFocusNode = FocusNode(debugLabel: 'FiltersBottomSheetInitialFocus');
+    _openInitialFilter();
+  }
+
+  /// Open the page [FiltersBottomSheet.initialFilter] names on arrival.
+  ///
+  /// Deferred a frame: the swap measures the outgoing page's height (see
+  /// [_loadFilterValues]), which needs this sheet laid out first.
+  void _openInitialFilter() {
+    final filter = _filterForInitialPage(widget.initialFilter);
+    if (filter == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_openFilter(filter));
+    });
+  }
+
+  /// The filter [key] names, or null when the sheet was asked for no page.
+  ///
+  /// A Plex section that publishes no genre field still offers the genre
+  /// editor: the values come from the section's own `/genre` listing, never
+  /// from a hard-coded name list, and this filter is only the page —
+  /// the category rows stay data-driven, so no row appears for it. The `key`
+  /// marks the field enumerable (so the page is a value list and summaries
+  /// resolve names); the host's loader derives the real per-grouping path.
+  MediaFilter? _filterForInitialPage(String? key) {
+    if (key == null) return null;
+    for (final filter in widget.filters) {
+      if (filter.filter == key) return filter;
+    }
+    if (key != MediaFilterField.genre) return null;
+    return MediaFilter.genreFallback(title: t.libraries.filterCategories.genre);
   }
 
   @override
@@ -105,6 +149,7 @@ class _FiltersBottomSheetState extends State<FiltersBottomSheet> {
   void dispose() {
     _filterValuesLoadGeneration++;
     _initialFocusNode.dispose();
+    _categoryScroll.dispose();
     super.dispose();
   }
 
@@ -309,6 +354,7 @@ class _FiltersBottomSheetState extends State<FiltersBottomSheet> {
         initialFocusNode: _initialFocusNode,
         onBack: _goBack,
         onChanged: (next) => _setField(filter.filter, next),
+        emptyValuesMessage: filter.filter == MediaFilterField.genre ? t.libraries.genreValuesEmpty : null,
       ),
       FilterEditorKind.number => FilterNumberPage(
         filter: filter,
@@ -338,66 +384,98 @@ class _FiltersBottomSheetState extends State<FiltersBottomSheet> {
 
   Widget _buildFiltersView() {
     final autofocusFirst = InputModeTracker.isKeyboardMode(context);
-    return ListView.builder(
-      primary: false,
-      shrinkWrap: true,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: _sortedFilters.length,
-      itemBuilder: (context, index) {
-        final filter = _sortedFilters[index];
-        final focusNode = index == 0 ? _initialFocusNode : null;
-        final autofocus = index == 0 && autofocusFirst;
+    // A Plex section declares its whole filter schema — the measured Movies
+    // section publishes 40 fields — so this list is always taller than the
+    // panel that hosts it. Two things keep the categories that start below the
+    // fold from being invisible on a first open:
+    //
+    // * the mouse is a drag device here. Flutter leaves `PointerDeviceKind
+    //   .mouse` out of `dragDevices` on every platform, so without this a
+    //   left-button drag on the list moves it 0 px (measured: two cold starts
+    //   with pixel-identical frames) and a desktop user cannot reach row 12;
+    // * the thumb is visible before the first scroll, because a list with no
+    //   scrollbar reads as a complete list.
+    //
+    // `scrollbars: false` on the behaviour suppresses the implicit Material
+    // scrollbar this subtree would otherwise also get on desktop.
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(
+        scrollbars: false,
+        dragDevices: {
+          PointerDeviceKind.touch,
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.stylus,
+          PointerDeviceKind.invertedStylus,
+          PointerDeviceKind.trackpad,
+          PointerDeviceKind.unknown,
+        },
+      ),
+      child: Scrollbar(
+        controller: _categoryScroll,
+        thumbVisibility: true,
+        child: ListView.builder(
+          controller: _categoryScroll,
+          primary: false,
+          shrinkWrap: true,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: _sortedFilters.length,
+          itemBuilder: (context, index) {
+            final filter = _sortedFilters[index];
+            final focusNode = index == 0 ? _initialFocusNode : null;
+            final autofocus = index == 0 && autofocusFirst;
 
-        if (filter.isBoolean) {
-          final clause = _selection.clauseFor(filter.filter);
-          return FilterBooleanRow(
-            filter: filter,
-            value: clause == null ? null : !clause.op.isNegated,
-            focusNode: focusNode,
-            autofocus: autofocus,
-            onChanged: (value) => _setField(
-              filter.filter,
-              value == null
-                  ? const []
-                  : [
-                      LibraryFilter(
-                        field: filter.filter,
-                        op: value ? LibraryFilterOperator.is_ : LibraryFilterOperator.isNot,
-                        values: const ['1'],
-                      ),
-                    ],
-            ),
-          );
-        }
-
-        final summary = filterFieldSummary(
-          filter: filter,
-          clauses: _selection,
-          serverId: widget.serverId,
-          libraryKey: widget.libraryKey,
-        );
-        return FocusableListTile(
-          focusNode: focusNode,
-          autofocus: autofocus,
-          title: Text(filter.title),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (summary != null)
-                Flexible(
-                  child: Text(
-                    summary,
-                    style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w500),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+            if (filter.isBoolean) {
+              final clause = _selection.clauseFor(filter.filter);
+              return FilterBooleanRow(
+                filter: filter,
+                value: clause == null ? null : !clause.op.isNegated,
+                focusNode: focusNode,
+                autofocus: autofocus,
+                onChanged: (value) => _setField(
+                  filter.filter,
+                  value == null
+                      ? const []
+                      : [
+                          LibraryFilter(
+                            field: filter.filter,
+                            op: value ? LibraryFilterOperator.is_ : LibraryFilterOperator.isNot,
+                            values: const ['1'],
+                          ),
+                        ],
                 ),
-              if (summary != null) const SizedBox(width: 8),
-              const AppIcon(Symbols.chevron_right_rounded, fill: 1),
-            ],
-          ),
-          onTap: () => unawaited(_openFilter(filter)),
-        );
-      },
+              );
+            }
+
+            final summary = filterFieldSummary(
+              filter: filter,
+              clauses: _selection,
+              serverId: widget.serverId,
+              libraryKey: widget.libraryKey,
+            );
+            return FocusableListTile(
+              focusNode: focusNode,
+              autofocus: autofocus,
+              title: Text(filter.title),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (summary != null)
+                    Flexible(
+                      child: Text(
+                        summary,
+                        style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w500),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  if (summary != null) const SizedBox(width: 8),
+                  const AppIcon(Symbols.chevron_right_rounded, fill: 1),
+                ],
+              ),
+              onTap: () => unawaited(_openFilter(filter)),
+            );
+          },
+        ),
+      ),
     );
   }
 }

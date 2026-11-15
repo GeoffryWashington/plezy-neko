@@ -71,10 +71,15 @@ enum LibraryFilterOperator {
 
 /// A single filter clause: one field, one comparison, one or more values.
 ///
-/// Values inside a clause are OR-ed (Plex `genre=1,2`, Jellyfin `Genres=a|b`).
-/// Separate clauses AND, including two clauses on the same field — that is how
-/// a range (`year>>=2000` plus `year<<=2010`) and an intersection
-/// (`genre=1&genre=2`) are expressed.
+/// Values inside a clause are OR-ed (Plex `tag=1,2`, Jellyfin `Genres=a|b`),
+/// with one measured exception: a Plex **genre** clause holding more than one
+/// id is an intersection and repeats its key (`genre=1&genre=2`), because Plex
+/// ANDs a repeated key: two genres selected together match 478 titles where the
+/// same pair comma-joined matches 1236. A single genre value, and an excluded
+/// genre (`genre!`, comma-joined), keep the plain form. Separate clauses AND,
+/// including two clauses on the same field — that is how a range
+/// (`year>>=2000` plus `year<<=2010`) and an intersection (`genre=1&genre=2`)
+/// are expressed.
 @freezed
 sealed class LibraryFilter with _$LibraryFilter {
   const factory LibraryFilter({

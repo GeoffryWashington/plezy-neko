@@ -123,10 +123,18 @@ Future<void> showAnchoredFilterPanel(
   required String libraryKey,
   required FilterValuesLoader loadFilterValues,
   Map<String, List<MediaFilterValue>> cachedValues = const {},
+  String? initialFilter,
 }) {
   return showAnchoredPanel<void>(
     context,
     anchorRect: anchorRect,
+    // Not a menu: this panel lists every category the section declares (the
+    // measured Movies section publishes 40 fields, plus the parse path's own
+    // File Path row), so [showAnchoredPanel]'s 560 px menu ceiling showed 11 of
+    // them and the other 30 needed a scroll the panel gave no sign of. The
+    // panel takes whatever height the screen has below the chip instead; the
+    // placement code still clamps it to the space the anchor leaves.
+    maxHeight: MediaQuery.sizeOf(context).height,
     builder: (panelContext) => FiltersBottomSheet(
       filters: filters,
       selectedFilters: selectedFilters,
@@ -135,6 +143,7 @@ Future<void> showAnchoredFilterPanel(
       libraryKey: libraryKey,
       loadFilterValues: loadFilterValues,
       cachedValues: cachedValues.isEmpty ? null : cachedValues,
+      initialFilter: initialFilter,
     ),
   );
 }

@@ -62,11 +62,11 @@ void main() {
       final params = translator.toQueryParameters(
         const LibraryQuery(
           filters: [
-            LibraryFilter(field: 'genre', values: ['Action', 'Drama']),
+            LibraryFilter(field: 'tag', values: ['Action', 'Drama']),
           ],
         ),
       );
-      expect(params['genre'], 'Action,Drama');
+      expect(params['tag'], 'Action,Drama');
     });
 
     test('a title clause and a search term both reach the wire instead of one winning', () {
@@ -101,6 +101,54 @@ void main() {
       expect(params['title<'], 'Wick');
     });
 
+    // Measured on the owner's Plex server 2026-11-14, re-measured 2026-11-15:
+    // genre=1278 -> 836, genre=1277 -> 878, genre=1278,1277 -> 1236 (= |A ∪ B|),
+    // genre=1278&genre=1277 -> 478 (= |A ∩ B|). A repeated key is the only
+    // shape Plex ANDs, so a multi-select must leave as ONE key PER id and never
+    // as the comma form.
+    test('a multi-select repeats the genre key so Plex intersects (measured: 478 vs 1236)', () {
+      final params = translator.toQueryParameters(
+        const LibraryQuery(
+          filters: [
+            LibraryFilter(field: 'genre', values: ['1278', '1277']),
+          ],
+        ),
+      );
+      expect(params['genre'], ['1278', '1277'], reason: 'one genre pair per selected id');
+      expect(encodeQueryParameters(params), 'genre=1278&genre=1277');
+      expect(
+        encodeQueryParameters(params),
+        isNot(contains('%2C')),
+        reason: 'the comma form is the union Plex answered 1236 for; it must never be produced for genre',
+      );
+    });
+
+    test('one genre value keeps the single form it always had', () {
+      final params = translator.toQueryParameters(
+        const LibraryQuery(
+          filters: [
+            LibraryFilter(field: 'genre', values: ['1278']),
+          ],
+        ),
+      );
+      expect(params['genre'], '1278');
+      expect(encodeQueryParameters(params), 'genre=1278');
+    });
+
+    test('a non-genre multi-value clause keeps the comma form (the OR this phase preserves)', () {
+      final params = translator.toQueryParameters(
+        const LibraryQuery(
+          filters: [
+            LibraryFilter(field: 'contentRating', values: ['R', 'PG-13']),
+            LibraryFilter(field: 'tag', values: ['Action', 'Drama']),
+          ],
+        ),
+      );
+      expect(params['contentRating'], 'R,PG-13');
+      expect(params['tag'], 'Action,Drama');
+      expect(encodeQueryParameters(params), 'contentRating=R%2CPG-13&tag=Action%2CDrama');
+    });
+
     test('two clauses on one field with the same operator repeat the key so Plex ANDs them', () {
       final params = translator.toQueryParameters(
         const LibraryQuery(
@@ -112,6 +160,25 @@ void main() {
       );
       expect(params['genre'], ['Comedy', 'Drama']);
       expect(encodeQueryParameters(params), 'genre=Comedy&genre=Drama');
+    });
+
+    // A cross-type section publishes the genre field qualified (`show.genre`
+    // on a TV section), and the chip still promises an intersection there: the
+    // comma form would be the union. The bare name decides the shape, the
+    // qualified name stays the key Plex receives.
+    test('a qualified cross-type genre field repeats its key too', () {
+      final params = translator.toQueryParameters(
+        const LibraryQuery(
+          filters: [
+            LibraryFilter(field: 'show.genre', op: LibraryFilterOperator.is_, values: ['1278', '1277']),
+          ],
+        ),
+      );
+      expect(params['show.genre'], ['1278', '1277'], reason: 'one pair per selected id, under the qualified key');
+      expect(encodeQueryParameters(params), 'show.genre=1278&show.genre=1277');
+      for (final value in params['show.genre']! as List<String>) {
+        expect(value, isNot(contains(',')), reason: 'a comma inside one value would OR it');
+      }
     });
 
     // Percent-encoding the operator and the value separator is safe: PMS
