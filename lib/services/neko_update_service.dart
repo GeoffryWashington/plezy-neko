@@ -10,7 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../utils/app_logger.dart';
 
 /// Fork version. Bumped for every release; must equal the release tag minus the leading "v".
-const kNekoVersion = '2.23.0-neko.2';
+const kNekoVersion = '2.24.0-neko.1';
 const kNekoRepo = 'GeoffryWashington/plezy-neko';
 
 class NekoRelease {
